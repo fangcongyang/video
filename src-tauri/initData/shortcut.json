@@ -1,0 +1,56 @@
+[
+  {
+    "id": 0,
+    "name": "playAndPause",
+    "desc": "播放或暂停",
+    "key": "space"
+  },
+  {
+    "id": 0,
+    "name": "forward",
+    "desc": "快进",
+    "key": "right"
+  },
+  {
+    "id": 0,
+    "name": "back",
+    "desc": "快退",
+    "key": "left"
+  },
+  {
+    "id": 0,
+    "name": "volumeUp",
+    "desc": "音量调高",
+    "key": "up"
+  },
+  {
+    "id": 0,
+    "name": "volumeDown",
+    "desc": "音量调低",
+    "key": "down"
+  },
+  {
+    "id": 0,
+    "name": "next",
+    "desc": "下一集",
+    "key": "alt+right"
+  },
+  {
+    "id": 0,
+    "name": "prev",
+    "desc": "上一集",
+    "key": "alt+left"
+  },
+  {
+    "id": 0,
+    "name": "playbackRateUp",
+    "desc": "播放倍速加快",
+    "key": "pageup"
+  },
+  {
+    "id": 0,
+    "name": "playbackRateDown",
+    "desc": "播放倍速减慢",
+    "key": "pagedown"
+  }
+]
