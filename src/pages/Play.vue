@@ -48,13 +48,13 @@
           <svg-icon name="play-share" size="22" title="分享"></svg-icon>
         </span>
         <span class="zy-svg" @click="showShortcutEvent" :class="playerInfo.right.type === 'shortcut' ? 'active' : ''" 
-          v-show="!moviesInfo.onlineUrl && moviesInfo.moviesList.length > 0">
+          v-show="!movieInfo.onlineUrl && moviesInfo.moviesList.length > 0">
           <svg-icon name="play-guide" size="22" title="快捷键指南"></svg-icon>
         </span>
         <span class="zy-svg" @click="issueEvent" v-show="moviesInfo.moviesList.length > 0">
           <svg-icon name="play-debug_info" size="22" title="复制调试信息"></svg-icon>
         </span>
-        <span class="timespanSwitch" v-if="moviesInfo.moviesList.length > 1 && !moviesInfo.onlineUrl" title="跳过片头片尾，建议优先通过快捷键设置，更便捷更精准">
+        <span class="timespanSwitch" v-if="moviesInfo.moviesList.length > 1 && !movieInfo.onlineUrl" title="跳过片头片尾，建议优先通过快捷键设置，更便捷更精准">
           <el-switch v-model="moviesInfo.showTimespanSetting" active-text="手动跳略时长"></el-switch>
         </span>
         <span class="timespan" v-if="moviesInfo.showTimespanSetting">
@@ -1064,6 +1064,10 @@ export default defineComponent({
       })
     }
     
+    const fmtMSS = (s) => {
+      return (s - (s %= 60)) / 60 + (s > 9 ? ':' : ':0') + s
+    }
+    
     watch(() => {
       if (video.value.playType == "movies") return movieInfo.value.siteKey + '@' + movieInfo.value.ids + '@' + movieInfo.value.index
       if (video.value.playType == "iptv") return channelGroupId.value;
@@ -1150,6 +1154,7 @@ export default defineComponent({
       getSourcePlayList,
       channelId,
       shortcutList,
+      fmtMSS,
     }
   },
   directives: {
@@ -1183,10 +1188,6 @@ export default defineComponent({
 //     }
 //   },
 //   methods: {
-//     ...mapMutations(['SET_SHARE', 'SET_APPSTATE']),
-//     fmtMSS (s) {
-//       return (s - (s %= 60)) / 60 + (s > 9 ? ':' : ':0') + s
-//     },
 //     shareEvent () {
 //       this.share = {
 //         show: true,
