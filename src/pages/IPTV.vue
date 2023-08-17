@@ -314,11 +314,7 @@ export default defineComponent({
 
     const importChannels = () => {
       if (iptvInfo.checkAllChannelsLoading) {
-        ElMessage({
-          showClose: true,
-          message: "正在检测, 请勿操作.",
-          type: "info",
-        });
+        ElMessage.info("正在检测, 请勿操作.");
         return false;
       }
       iptvInfo.importChannelVisible = true;

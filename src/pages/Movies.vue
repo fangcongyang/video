@@ -1083,7 +1083,7 @@ export default defineComponent({
       return moviesInfo.searchContents;
     },
     () => {
-      moviesFilteredList = moviesInfo.moviesFilteredList.filter(res => !moviesConf.value.excludeR18Films || !containsClassFilterKeyword(res.type))
+      let moviesFilteredList = moviesInfo.moviesFilteredList.filter(res => !moviesConf.value.excludeR18Films || !containsClassFilterKeyword(res.type))
       moviesInfo.areas = [...new Set(moviesFilteredList.map(ele => ele.area))].filter(x => x)
       moviesInfo.searchClassList = [...new Set(moviesFilteredList.map(ele => ele.type))].filter(x => x)
       refreshFilteredList()

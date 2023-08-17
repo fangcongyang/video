@@ -17,8 +17,12 @@ export const useCoreStore = defineStore('core', {
         },
         systemConf: {
           theme: "theme-light",
-          shortcut: true,
           saveWindowState: false,
+          excludeRootClasses: false,
+          rootClassFilter: [],
+          excludeR18Films: false,
+          r18ClassFilter: [],
+          shortcut: true,
           allowPassWhenIptvCheck: false,
           autocleanWhenIptvCheck: false,
           pauseWhenMinimize: false,

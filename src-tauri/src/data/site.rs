@@ -1,7 +1,6 @@
 use super::data_source_con::*;
 use serde::{Serialize, Deserialize};
 use crate::utils;
-use tokio::task; 
 
 #[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize)]
@@ -16,14 +15,7 @@ pub struct Site {
     reverseOrder: String,
 }
 
-
-#[tokio::main]
-pub async fn check_init_site () {
-    let task = task::spawn(async_check_init_site());
-    task.await.unwrap();
-}
-
-async fn async_check_init_site () {
+pub fn check_init_site () {
     let mut binding = CACHE.lock().unwrap();
     let conn = binding.get(DBNAME.into()).unwrap();
     let count: i32 = conn.query_row("SELECT COUNT(1) FROM site", (), |row| row.get(0)).unwrap_or(0);
@@ -107,12 +99,32 @@ pub mod cmd {
             ).unwrap(),
         };
     }
+    
+    #[command]
+    pub fn insert_sites(sites: Vec<Site>) {
+        let mut binding = CACHE.lock().unwrap();
+        let conn = binding.get(DBNAME.into()).unwrap();
+        for site in sites {
+            conn.execute(
+                "INSERT INTO site (id, key, name, api, group, is_active, status, reverse_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                (&site.id, &site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.reverseOrder),
+            ).unwrap();
+        }
+    }
 
     #[command]
     pub fn del_site(id: i32) {
         let mut binding = CACHE.lock().unwrap();
         let conn = binding.get(DBNAME.into()).unwrap();
         conn.execute("DELETE FROM site WHERE id = ?1", params![&id]).unwrap();
+    }
+
+    #[command]
+    pub fn reset_site() {
+        let mut binding = CACHE.lock().unwrap();
+        let conn = binding.get(DBNAME.into()).unwrap();
+        conn.execute("DELETE FROM site WHERE 1=1", []).unwrap();
+        super::check_init_site();
     }
 
 }

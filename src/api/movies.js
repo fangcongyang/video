@@ -137,7 +137,23 @@ class SiteClassJsonParser {
 }
 
 export default  {
-    
+    /**
+     * 检查资源
+     * @param {*} site 资源网信息
+     * @returns boolean
+     */
+    async siteCheck (site) {
+        try {
+            const cls = await this.getSiteClass(site)
+            if (cls) {
+                return true
+            } else {
+                return false
+            }
+        } catch (e) {
+            return false
+        }
+    },
     /**
      * 获取资源分类 和 所有资源的总数, 分页等信息
      * @param {*} site 资源网信息

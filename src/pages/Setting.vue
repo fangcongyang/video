@@ -26,13 +26,13 @@
               <ul class="vop-scroll">
                 <li
                   :class="systemConf.shortcut === true ? 'active' : ''"
-                  @click="changeShortcut(true)"
+                  @click="updateSystemConf"
                 >
                   开启
                 </li>
                 <li
                   :class="systemConf.shortcut === false ? 'active' : ''"
-                  @click="changeShortcut(false)"
+                  @click="updateSystemConf"
                 >
                   关闭
                 </li>
@@ -52,6 +52,54 @@
           <div class="vop-select">
             <div class="vs-placeholder vs-noAfter" @click="resetShortcut">
               <span>重置</span>
+            </div>
+          </div>
+        </div>
+      </div><div class="setting-item">
+        <div class="title">
+          影片配置
+        </div>
+        <div class="setting-item-box">
+          <div class="vop-select" @mouseleave="settingInfo.excludeRootClasses = false">
+            <div class="vs-placeholder" @click="settingInfo.excludeRootClasses = true">
+              <span>排除主分类</span>
+            </div>
+            <div class="vs-options" v-show="settingInfo.excludeRootClasses">
+              <ul class="vop-scroll">
+                <li
+                  :class="systemConf.excludeRootClasses === true ? 'active' : ''"
+                  @click="updateSystemConf"
+                >
+                  开启
+                </li>
+                <li
+                  :class="systemConf.excludeRootClasses === false ? 'active' : ''"
+                  @click="updateSystemConf"
+                >
+                  关闭
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div class="vop-select" @mouseleave="settingInfo.excludeR18Films = false">
+            <div class="vs-placeholder" @click="settingInfo.excludeR18Films = true">
+              <span>排除18禁</span>
+            </div>
+            <div class="vs-options" v-show="settingInfo.excludeR18Films">
+              <ul class="vop-scroll">
+                <li
+                  :class="systemConf.excludeR18Films === true ? 'active' : ''"
+                  @click="updateSystemConf"
+                >
+                  开启
+                </li>
+                <li
+                  :class="systemConf.excludeR18Films === false ? 'active' : ''"
+                  @click="updateSystemConf"
+                >
+                  关闭
+                </li>
+              </ul>
             </div>
           </div>
         </div>
@@ -265,7 +313,8 @@
     </div>
     <div>
       <!-- 输入密码页面 -->
-      <!-- <el-dialog :visible.sync="show.checkPasswordDialog" v-if='show.checkPasswordDialog' :append-to-body="true" @close="closeDialog" width="300px">
+      <el-dialog :visible.sync="settingInfo.checkPasswordDialog" v-if='settingInfo.checkPasswordDialog' :append-to-body="true" 
+        @close="closeDialog" width="300px">
         <el-form label-width="75px" label-position="left">
           <el-form-item label="当前密码" prop='name'>
             <el-input v-model="inputPassword" placeholder="请输入您的当前密码" />
@@ -275,7 +324,7 @@
           <el-button @click="closeDialog">取消</el-button>
           <el-button type="primary" @click="checkPasswordEvent">确定</el-button>
         </span>
-      </el-dialog> -->
+      </el-dialog>
     </div>
     <div>
       <!-- 修改密码页面 -->
@@ -350,13 +399,15 @@ export default defineComponent({
     const coreStore = useCoreStore();
     const { getPlayerConf, getSystemConf, updatePlayerConf, updateSystemConf } =
       coreStore;
-    const { systemConf, playerConf } = storeToRefs(coreStore);
+    const { view, systemConf, playerConf } = storeToRefs(coreStore);
 
     const moviesStore = useMoviesStore();
     const {} = storeToRefs(moviesStore);
 
     const settingInfo = reactive({
       shortcut: false,
+      excludeRootClasses: false,
+      excludeR18Films: false,
       configSitesDataUrlDialog: false,
       configDefaultParseUrlDialog: false,
       checkPasswordDialog: false,
@@ -380,7 +431,7 @@ export default defineComponent({
     };
     
     const closeDialog = () => {
-      // this.show.checkPasswordDialog = false
+      settingInfo.checkPasswordDialog = false
       // this.show.changePasswordDialog = false
       settingInfo.configDefaultParseUrlDialog = false
       settingInfo.configSitesDataUrlDialog = false
@@ -403,6 +454,30 @@ export default defineComponent({
       }
     }
 
+    const checkPasswordEvent = () => {
+      if (this.inputPassword === this.d.password) {
+        this.closeDialog()
+        if (this.action === 'EditSites') {
+          this.view = 'EditSites'
+        } else if (this.action === 'ChangePassword') {
+          this.show.changePasswordDialog = true
+        } else if (this.action === 'CleanDB') {
+          this.clearDB()
+        }
+      } else {
+        this.$message.error('您输入的密码错误，请重试')
+      }
+    }
+    
+    const editSitesEvent = () => {
+      // if (this.d.password) {
+      //   this.action = 'EditSites'
+      //   this.show.checkPasswordDialog = true
+      // } else {
+        view.value = 'EditSites'
+      // }
+    }
+
     onBeforeMount(() => {
       getSystemConf();
       getPlayerConf();
@@ -419,13 +494,12 @@ export default defineComponent({
       updatePlayerConf,
       closeDialog,
       changePasswordEvent,
+      checkPasswordEvent,
+      editSitesEvent
     };
   },
 });
-// import { setting, sites, shortcut } from '../lib/dexie'
 // import { localKey as defaultShortcuts } from '../lib/dexie/initData'
-// import db from '../lib/dexie/dexie'
-// import zy from '../lib/site/tools'
 // export default {
 //   data () {
 //     return {
@@ -456,18 +530,7 @@ export default defineComponent({
 //       }
 //     }
 //   },
-//   computed: {
-//     setting: {
-//       get () {
-//         return this.$store.getters.getSetting
-//       },
-//       set (val) {
-//         this.SET_SETTING(val)
-//       }
-//     }
-//   },
 //   methods: {
-//     ...mapMutations(['SET_SETTING'),
 //     getSetting () {
 //       setting.find().then(res => {
 //         this.d = res
@@ -489,14 +552,6 @@ export default defineComponent({
 //       await ses.clearCache()
 //       this.$message.success(`清除缓存成功, 共清理 ${mb} MB`)
 //     },
-//     toggleExcludeR18Films () {
-//       this.d.excludeR18Films = !this.d.excludeR18Films
-//       this.updateSettingEvent()
-//     },
-//     toggleExcludeRootClasses () {
-//       this.d.excludeRootClasses = !this.d.excludeRootClasses
-//       this.updateSettingEvent()
-//     },
 //     async resetDefaultParseURL () {
 //       this.setting.defaultParseURL = 'https://jx.bpba.cc/?v='
 //     },
@@ -515,37 +570,10 @@ export default defineComponent({
 //       this.show.configSitesDataUrlDialog = false
 //       this.updateSettingEvent()
 //     },
-//     editSitesEvent () {
-//       if (this.d.password) {
-//         this.action = 'EditSites'
-//         this.show.checkPasswordDialog = true
-//       } else {
-//         this.view = 'EditSites'
-//       }
-//     },
-//     checkPasswordEvent () {
-//       if (this.inputPassword === this.d.password) {
-//         this.closeDialog()
-//         if (this.action === 'EditSites') {
-//           this.view = 'EditSites'
-//         } else if (this.action === 'ChangePassword') {
-//           this.show.changePasswordDialog = true
-//         } else if (this.action === 'CleanDB') {
-//           this.clearDB()
-//         }
-//       } else {
-//         this.$message.error('您输入的密码错误，请重试')
-//       }
-//     },
 //     confirmedChangePasswordEvent () {
 //       this.d.password = this.inputPassword
 //       this.updateSettingEvent()
 //       this.closeDialog()
-//     },
-//     changeShortcut (e) {
-//       this.d.shortcut = e
-//       this.updateSettingEvent()
-//       this.show.shortcut = false
 //     },
 //     impShortcut () {
 //       const str = clipboard.readText()

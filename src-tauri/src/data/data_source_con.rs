@@ -8,6 +8,8 @@ use lazy_static::lazy_static;
 use lru::LruCache;
 
 use crate::utils;
+use crate::AppConf;
+use crate::data;
 
 pub const DBNAME: &str = "video";
 
@@ -50,6 +52,20 @@ pub fn init() {
         File::create(&output).unwrap();
     }
     let video_db = Connection::open(output).unwrap();
+    CACHE.lock().unwrap().put(DBNAME.into(), video_db);
+    let app_conf = AppConf::read();
+    if !app_conf.isInitDatabase {
+        init_database();
+        data::site::check_init_site();
+        app_conf
+        .amend(serde_json::json!({ "isInitDatabase" : true }))
+        .write();
+    }
+}
+
+fn init_database() {
+    let mut binding = CACHE.lock().unwrap();
+    let video_db = binding.get(DBNAME.into()).unwrap();
     
     // 网站信息表
     video_db.execute(
@@ -165,7 +181,14 @@ pub fn init() {
         )",
         (),
     ).unwrap();
-    
-    CACHE.lock().unwrap().put(DBNAME.into(), video_db);
+}
+
+pub mod cmd {
+    use tauri::command;
+
+    #[command]
+    pub fn init_database() {
+        super::init_database()
+    }
 }
 

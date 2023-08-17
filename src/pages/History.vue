@@ -483,11 +483,6 @@ export default defineComponent({
       await getSystemConf();
     })
 
-    onMounted(() => {
-      addEventListener('keydown', event => { if (event.code === 16) historyInfo.shiftDown = true })
-      addEventListener('keyup', event => { if (event.code === 16) historyInfo.shiftDown = false })
-    })
-
     return {
       historyInfo,
       history,

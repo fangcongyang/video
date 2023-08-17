@@ -9,6 +9,7 @@
       <Star v-show="view === 'Star'" />
       <History v-show="view === 'History'" />
       <Setting v-show="view === 'Setting'" />
+      <EditSites v-show="view === 'EditSites'" />
     </div>
     <transition name="slide">
       <Detail v-if="detail.show" />
@@ -30,6 +31,7 @@ import Star from "@/pages/Star.vue";
 import History from "@/pages/History.vue";
 import Detail from "@/pages/Detail.vue";
 import Setting from "@/pages/Setting.vue";
+import EditSites from "@/pages/EditSites.vue";
 import { useDark, useToggle } from "@vueuse/core";
 
 export default defineComponent({
@@ -43,6 +45,7 @@ export default defineComponent({
     Detail,
     Setting,
     Star,
+    EditSites
   },
   setup() {
     const coreStore = useCoreStore();

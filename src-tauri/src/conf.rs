@@ -43,9 +43,10 @@ impl SystemConf {
       theme: "theme-light".into(),
       saveWindowState: false,
       excludeRootClasses: false,
-      rootClassFilter: Vec::new(),
+      rootClassFilter: Vec::from(["电影".into(), "电影片".into(), "电视剧".into(), "连续剧".into(), "综艺".into(), "动漫".into()]),
       excludeR18Films: false,
-      r18ClassFilter: Vec::new(),
+      r18ClassFilter: Vec::from(["伦理".into(), "论理".into(), "倫理".into(), "福利".into(), "激情".into(), "理论".into(), "写真".into(), "情色".into(), 
+        "美女".into(), "街拍".into(), "赤足".into(), "性感".into(), "里番".into(), "VIP".into()]),
       moviesViewMode: "picture".into(),
       starViewMode: "picture".into(),
       historyViewMode: "picture".into(),
@@ -59,10 +60,6 @@ impl SystemConf {
 
 pub_struct!(MoviesConf {
   searchGroup: String,
-  excludeRootClasses: bool,
-  rootClassFilter: Vec<String>,
-  excludeR18Films: bool,
-  r18ClassFilter: Vec<String>,
   moviesViewMode: String,
 });
 
@@ -70,10 +67,6 @@ impl MoviesConf {
   pub fn new() -> Self {
     Self { 
       searchGroup: "全站".into(),
-      excludeRootClasses: false,
-      rootClassFilter: Vec::new(),
-      excludeR18Films: false,
-      r18ClassFilter: Vec::new(),
       moviesViewMode: "picture".into(),
     }
   }
@@ -119,6 +112,7 @@ pub_struct!(AppConf {
 
   // Main Window
   isinit: bool,
+  isInitDatabase: bool,
   popup_search: bool,
   main_close: bool,
   main_dashboard: bool,
@@ -139,6 +133,7 @@ impl AppConf {
       isinit: true,
       main_close: false,
       main_dashboard: true,
+      isInitDatabase: false,
       ua_window: "".into(),
       global_shortcut: None,
       moviesConf: MoviesConf::new(),

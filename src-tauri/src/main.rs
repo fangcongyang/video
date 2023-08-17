@@ -16,7 +16,6 @@ fn main() {
     let context = tauri::generate_context!();
 
     data_source_con::init();
-    site::check_init_site();
     shortcut::check_init_shortcut();
     download_info::init();
 
@@ -27,6 +26,7 @@ fn main() {
         site::cmd::get_site_by_key,
         site::cmd::save_site,
         site::cmd::del_site,
+        site::cmd::reset_site,
         conf::cmd::get_conf_by_name,
         conf::cmd::config_update,
         channel::cmd::select_channel_group,
@@ -59,6 +59,7 @@ fn main() {
         download_info::cmd::download,
         shortcut::cmd::select_shortcut,
         shortcut::cmd::save_shortcut,
+        data_source_con::cmd::init_database,
     ])
     .setup(setup::init);
     builder.system_tray(menu::tray_menu())
