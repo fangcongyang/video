@@ -197,6 +197,7 @@ import { open, save } from "@tauri-apps/api/dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/api/fs";
 import { invoke } from "@tauri-apps/api/tauri";
 import moviesApi from "@/api/movies";
+import Sortable from 'sortablejs';
 import {
   Key,
   DocumentAdd,
