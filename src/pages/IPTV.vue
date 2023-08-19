@@ -48,6 +48,8 @@
         active-text="批处理及频道调整"
       ></el-switch>
       <el-input
+        style="width: 200Px;"
+        size="small"
         placeholder="新组名/新频道名"
         v-model="iptvInfo.inputContent"
       ></el-input>
@@ -221,8 +223,6 @@ import {
   defineComponent,
   reactive,
   watch,
-  onBeforeMount,
-  computed,
   nextTick,
   ref,
 } from "vue";
@@ -758,6 +758,26 @@ export default defineComponent({
       channelGroupClone.channels = JSON.stringify(channelGroupClone.channels);
       await invoke("save_channel_group", { channelGroup: channelGroupClone })
     }
+    
+    const checkChannelsBySite = async (channels) => {
+      const siteList = {}
+      channelList.value.forEach(channel => {
+        const site = channel.url.split('/')[2]
+        if (siteList[site]) {
+          siteList[site].push(channel)
+        } else {
+          siteList[site] = [channel]
+        }
+      })
+      await Promise.all(Object.values(siteList).map(site => checkSingleSite(site)))
+    }
+    
+    const checkSingleSite = async (channelArray) => {
+      for (const c of channelArray) {
+        if (iptvInfo.stopFlag) return false
+        await checkSingleChannel(c)
+      }
+    }
 
     watch(
       () => view.value,
@@ -798,7 +818,8 @@ export default defineComponent({
       removeSelectedChannels,
       mergeChannel,
       isActiveChangeEvent,
-      Search
+      Search,
+      checkChannelsBySite,
     };
   },
 });
@@ -836,7 +857,6 @@ export default defineComponent({
 //     }
 //   },
 //   methods: {
-//     ...mapMutations(['SET_VIEW', 'SET_DETAIL', 'SET_VIDEO', 'SET_SHARE', 'SET_SETTING']),
 
 //     moveToTopEvent (row) {
 //       if (this.checkAllChannelsLoading) {
@@ -865,24 +885,6 @@ export default defineComponent({
 //           _this.updateDatabase()
 //         }
 //       })
-//     },
-//     async checkChannelsBySite (channels) {
-//       const siteList = {}
-//       channels.forEach(channel => {
-//         const site = channel.url.split('/')[2]
-//         if (siteList[site]) {
-//           siteList[site].push(channel)
-//         } else {
-//           siteList[site] = [channel]
-//         }
-//       })
-//       await Promise.all(Object.values(siteList).map(site => this.checkSingleSite(site)))
-//     },
-//     async checkSingleSite (channelArray) {
-//       for (const c of channelArray) {
-//         if (this.stopFlag) return false
-//         await this.checkSingleChannel(c)
-//       }
 //     },
 //   },
 // }

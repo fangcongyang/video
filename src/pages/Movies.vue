@@ -1056,9 +1056,7 @@ export default defineComponent({
     };
 
     watch(
-      () => {
-        return moviesInfo.searchTxt;
-      },
+      () => moviesInfo.searchTxt,
       async () => {
         if (moviesInfo.searchTxt === "清除历史记录...") {
           await invoke("del_all_search_record", {});
@@ -1069,9 +1067,7 @@ export default defineComponent({
     );
 
     watch(
-      () => {
-        return moviesInfo.siteSearchCount;
-      },
+      () => moviesInfo.siteSearchCount,
       () => {
         if (moviesInfo.siteSearchCount === searchSites.value.length) {
           moviesInfo.searchRunning = false;
@@ -1079,17 +1075,17 @@ export default defineComponent({
       }
     );
     
-    watch(() => {
-      return moviesInfo.searchContents;
-    },
-    () => {
-      let moviesFilteredList = moviesInfo.moviesFilteredList.filter(res => !moviesConf.value.excludeR18Films || !containsClassFilterKeyword(res.type))
-      moviesInfo.areas = [...new Set(moviesFilteredList.map(ele => ele.area))].filter(x => x)
-      moviesInfo.searchClassList = [...new Set(moviesFilteredList.map(ele => ele.type))].filter(x => x)
-      refreshFilteredList()
-    },  {
-      deep: true
-    })
+    watch(
+      () => moviesInfo.searchContents,
+      () => {
+        let moviesFilteredList = moviesInfo.moviesFilteredList.filter(res => !moviesConf.value.excludeR18Films || !containsClassFilterKeyword(res.type))
+        moviesInfo.areas = [...new Set(moviesFilteredList.map(ele => ele.area))].filter(x => x)
+        moviesInfo.searchClassList = [...new Set(moviesFilteredList.map(ele => ele.type))].filter(x => x)
+        refreshFilteredList()
+      },  {
+        deep: true
+      }
+    )
 
     onMounted(() => {
       getMoviesConf();

@@ -4,9 +4,6 @@
       <el-switch v-model="siteInfo.enableBatchEdit" active-text="批处理分组"
         >></el-switch
       >
-      <el-button @click="openFilterKeywordsDiag" :icon="Key"
-        >关键词过滤</el-button
-      >
       <el-button @click="addSite" :icon="DocumentAdd">新增</el-button>
       <el-button
         @click="exportSites"
@@ -30,7 +27,9 @@
         v-model="siteInfo.enableBatchEdit"
         active-text="批处理分组"
       ></el-switch>
-      <el-input placeholder="新组名" v-model="siteInfo.batchGroupName"></el-input>
+      <el-input 
+        style="width: 200Px;"
+        size="small" placeholder="新组名" v-model="siteInfo.batchGroupName"></el-input>
       <el-switch v-model="siteInfo.batchIsActive" active-text="启用"></el-switch>
       <el-button type="primary" :icon="Edit" @click.stop="saveBatchEdit" title="输入框组名为空时仅保存开关状态">保存分组与开关状态</el-button>
       <el-button @click="removeSelectedSites" :icon="DeleteFilled">删除</el-button>
@@ -75,8 +74,10 @@
             <template #default="scope">
               <el-switch
                 v-model="scope.row.reverseOrder"
+                active-value="1"
+                inactive-value="0"
                 @click.native.stop="propChangeEvent(scope.row)"
-                >>
+                >
               </el-switch>
             </template>
           </el-table-column>
@@ -128,7 +129,7 @@
     </div>
     <!-- 编辑页面 -->
     <div>
-      <el-dialog :visible.sync="siteInfo.editSiteDialogVisible" v-if='siteInfo.editSiteDialogVisible' :title="siteInfo.dialogType==='edit'?'编辑源':'新增源'" 
+      <el-dialog v-model="siteInfo.editSiteDialogVisible" v-if='siteInfo.editSiteDialogVisible' :title="siteInfo.dialogType==='edit'?'编辑源':'新增源'" 
         :append-to-body="true" @close="closeDialog">
         <el-form :model="site" ref='siteRef' label-width="75px" label-position="left" :rules="siteInfo.rules">
           <el-form-item label="源站名" prop='name'>
@@ -142,7 +143,7 @@
           </el-form-item>
           <el-form-item label="分组" prop='group'>
             <el-select v-model="site.group" allow-create filterable default-first-option placeholder="请输入分组">
-              <el-option v-for="item in siteGroup" :key="item" :label="item" :value="item"></el-option>
+              <el-option v-for="item in siteInfo.siteGroup" :key="item" :label="item" :value="item"></el-option>
             </el-select>
           </el-form-item>
           <el-form-item label="源站标识" prop='key'>
@@ -155,27 +156,6 @@
         </span>
       </el-dialog>
     </div>
-    <!-- 设置过滤关键词页面 -->
-    <!-- <div>
-      <el-dialog :visible.sync="filterKeywordsDialogVisible" v-if='filterKeywordsDialogVisible' :title="'分类过滤'" :append-to-body="true" @close="closeDialog">
-        <el-form>
-          <el-switch v-model="excludeRootClasses" active-text="开启主分类过滤">></el-switch>
-          <el-form-item>
-            <el-input v-model="rootClassFilterKeywords" :autosize="{ minRows: 3, maxRows: 6}" type="textarea" placeholder="请输入过滤关键词" />
-          </el-form-item>
-        </el-form>
-        <el-form>
-          <el-switch v-model="excludeR18Films" active-text="开启福利分类过滤">></el-switch>
-          <el-form-item>
-            <el-input v-model="r18ClassFilterKeywords" :autosize="{ minRows: 3, maxRows: 6}" type="textarea" placeholder="请输入过滤关键词" />
-          </el-form-item>
-        </el-form>
-        <span slot="footer" class="dialog-footer">
-          <el-button @click="closeDialog">取消</el-button>
-          <el-button type="primary" @click="saveFilterKeywords">保存</el-button>
-        </span>
-      </el-dialog>
-    </div> -->
   </div>
 </template>
 <script>
@@ -199,13 +179,11 @@ import { invoke } from "@tauri-apps/api/tauri";
 import moviesApi from "@/api/movies";
 import Sortable from 'sortablejs';
 import {
-  Key,
   DocumentAdd,
   Upload,
   Download,
   Refresh,
   RefreshLeft,
-  Search,
   Edit,
   DeleteFilled
 } from "@element-plus/icons-vue";
@@ -219,13 +197,10 @@ export default defineComponent({
     const moviesStore = useMoviesStore();
     const {
       getAllSite,
-      getSiteByKey,
       refreshSiteList,
     } = moviesStore;
     const {
       siteList,
-      movieInfo,
-      moviesConf,
     } = storeToRefs(moviesStore);
 
     const editSitesTableRef = ref();
@@ -240,7 +215,6 @@ export default defineComponent({
       selectionBegin: "",
       selectionEnd: "",
       multipleSelection: [],
-      filterKeywordsDialogVisible: false,
       dialogType: "new",
       editOldkey: "",
       editSiteDialogVisible: false,
@@ -295,13 +269,6 @@ export default defineComponent({
       }
     };
 
-    const openFilterKeywordsDiag = () => {
-      // this.excludeR18Films = this.setting.excludeR18Films
-      // this.rootClassFilterKeywords = this.setting.rootClassFilter?.join()
-      // this.r18ClassFilterKeywords = this.setting.r18ClassFilter?.join()
-      siteInfo.filterKeywordsDialogVisible = true;
-    };
-
     const addSite = () => {
       if (siteInfo.checkAllSitesLoading) {
         ElMessage.info("正在检测, 请勿操作.");
@@ -322,7 +289,7 @@ export default defineComponent({
 
     const getSitesGroup = () => {
       const arr = [];
-      for (const i of siteList) {
+      for (const i of siteList.value) {
         if (arr.indexOf(i.group) < 0) {
           arr.push(i.group);
         }
@@ -404,15 +371,16 @@ export default defineComponent({
       });
     };
     
-    const editSite = (siteInfo) => {
+    const editSite = (row) => {
       if (siteInfo.checkAllSitesLoading) {
         ElMessage.info('正在检测, 请勿操作.')
         return false
       }
       getSitesGroup()
       siteInfo.dialogType = 'edit'
+      siteInfo.editOldkey = row.key;
       siteInfo.editSiteDialogVisible = true
-      site.value = siteInfo
+      site.value = row
     }
 
     const checkSingleSite = async (row) => {
@@ -421,10 +389,11 @@ export default defineComponent({
         siteInfo.checkProgress += 1
         return row.status
       }
-      const flag = await moviesApi.siteCheck(row.key)
+      const flag = await moviesApi.siteCheck(row)
       siteInfo.checkProgress += 1
       if (flag) {
         row.status = '可用'
+        row.isActive = '1'
       } else {
         row.status = '失效'
         row.isActive = '0'
@@ -481,7 +450,6 @@ export default defineComponent({
     
     const closeDialog = () => {
       siteInfo.editSiteDialogVisible = false
-      siteInfo.filterKeywordsDialogVisible = false
     }
 
     const saveBatchEdit = () => {
@@ -512,14 +480,17 @@ export default defineComponent({
       if (!checkSiteKey()) {
         return false
       }
-      const randomstring = require('randomstring')
+      
       const doc = {
-        key: siteInfo.dialogType === 'edit' ? site.value.key : site.value.key ? site.value.key : randomstring.generate(6),
+        id: siteInfo.dialogType === 'edit' ? site.value.id : 0,
+        key: site.value.key,
         name: site.value.name,
         api: site.value.api,
         download: site.value.download,
         group: site.value.group,
-        isActive: site.value.isActive
+        isActive: site.value.isActive,
+        status: '可用',
+        position: siteInfo.dialogType === 'edit' ? site.value.position : 0,
       }
       await invoke("save_site", { site: doc });
       site.value = {
@@ -532,13 +503,14 @@ export default defineComponent({
       
       siteInfo.editSiteDialogVisible = false
       siteInfo.editOldkey = ''
+      refreshSiteList();
     }
     
-    const checkSiteKey = (e) => {
-      if (siteInfo.dialogType === 'edit' && siteInfo.editOldkey === site.key) {
+    const checkSiteKey = () => {
+      if (siteInfo.dialogType === 'edit' && siteInfo.editOldkey === site.value.key) {
         return true
       } else {
-        for (const i of siteList) {
+        for (const i of siteList.value) {
           if (i.key === site.value.key) {
             ElMessage.warning(`源站标识: ${i.key} 已存在, 请勿重复填写.`)
             return false
@@ -575,6 +547,14 @@ export default defineComponent({
       })
     }
 
+    watch(() => siteInfo.enableBatchEdit,
+    () => {
+      if (siteInfo.checkAllSitesLoading) {
+        ElMessage.info('正在检测, 请勿操作.')
+        siteInfo.enableBatchEdit = false
+      }
+    })
+
     onBeforeMount(() => {
       getAllSite();
     });
@@ -591,7 +571,6 @@ export default defineComponent({
       editSitesTableRef,
       handleSelectionChange,
       handleSortChange,
-      Key,
       DocumentAdd,
       Upload,
       Download,
@@ -599,7 +578,6 @@ export default defineComponent({
       RefreshLeft,
       Edit,
       DeleteFilled,
-      openFilterKeywordsDiag,
       site,
       addSite,
       exportSites,
@@ -615,64 +593,8 @@ export default defineComponent({
       saveBatchEdit,
       removeSelectedSites,
       addOrEditSite,
+      checkSingleSite,
     };
   },
 });
-
-// export default {
-//   data () {
-//     return {
-//       show: false,
-//       filterKeywordsDialogVisible: false,
-//       rootClassFilterKeywords: [],
-//       r18ClassFilterKeywords: [],
-//     }
-//   },
-//   watch: {
-//     enableBatchEdit () {
-//       if (this.checkAllSitesLoading) {
-//         this.$message.info('正在检测, 请勿操作.')
-//         this.enableBatchEdit = false
-//       }
-//       if (this.enableBatchEdit) {
-//         if (this.setting.shiftTooltipLimitTimes === undefined) this.setting.shiftTooltipLimitTimes = 5
-//         if (this.setting.shiftTooltipLimitTimes) {
-//           this.$message.info('多选时支持shift快捷键')
-//           this.setting.shiftTooltipLimitTimes--
-//           setting.find().then(res => {
-//             res.shiftTooltipLimitTimes = this.setting.shiftTooltipLimitTimes
-//             setting.update(res)
-//           })
-//         }
-//       }
-//     }
-//   },
-//   methods: {
-//     getSites () {
-//       sites.all().then(res => {
-//         res.forEach(element => {
-//           if (element.reverseOrder === null || element.reverseOrder === undefined) {
-//             element.reverseOrder = false
-//           }
-//         })
-//         this.sites = res
-//       })
-//     },
-//     saveFilterKeywords () {
-//       // 移除空格,然后按逗号分开
-//       this.setting.rootClassFilter = this.rootClassFilterKeywords?.replace(/\s/g, '').split(',')
-//       this.setting.r18ClassFilter = this.r18ClassFilterKeywords?.replace(/\s/g, '').split(',')
-//       this.setting.classFilter = []
-//       this.setting.excludeRootClasses = this.excludeRootClasses
-//       if (this.excludeRootClasses) {
-//         this.setting.classFilter = this.setting.classFilter.concat(this.setting.rootClassFilter)
-//       }
-//       this.setting.excludeR18Films = this.excludeR18Films
-//       if (this.excludeR18Films) {
-//         this.setting.classFilter = this.setting.classFilter.concat(this.setting.r18ClassFilter)
-//       }
-//       setting.update(this.setting)
-//       this.filterKeywordsDialogVisible = false
-//     },
-// }
 </script>

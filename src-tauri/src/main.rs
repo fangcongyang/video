@@ -27,6 +27,7 @@ fn main() {
         site::cmd::save_site,
         site::cmd::del_site,
         site::cmd::reset_site,
+        site::cmd::insert_sites,
         conf::cmd::get_conf_by_name,
         conf::cmd::config_update,
         channel::cmd::select_channel_group,

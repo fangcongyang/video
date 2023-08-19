@@ -77,7 +77,7 @@ fn init_database() {
             `group` TEXT(4) NOT NULL  , --影视
             is_active TEXT(1) NOT NULL  , --是否激活;1 激活 0不激活
             status TEXT(3) NOT NULL  , --状态;可用 不可用
-            reverse_order TEXT(1) NOT NULL  --是否反向排序
+            position REAL NOT NULL --排序
         )",
         (),
     ).unwrap();

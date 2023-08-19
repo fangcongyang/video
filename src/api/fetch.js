@@ -64,6 +64,7 @@ export default {
             }).then(res => {
                 resolve(res.data)
             }).catch((error) => {
+                console.log(error)
                 reject(error)
             })
         })

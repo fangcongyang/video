@@ -5,6 +5,7 @@ use std::{
 };
 
 use anyhow::Result;
+use pinyin::{to_pinyin_vec, Pinyin};
 
 pub fn app_root() -> PathBuf {
     tauri::api::path::home_dir().unwrap().join(".video")
@@ -42,4 +43,8 @@ pub fn repeat_vars(count: usize) -> String {
 
 pub fn mkdir<P: AsRef<Path>>(path: P) {
     std::fs::create_dir_all(&path).expect(&format!("Cannot create directory {}", path.as_ref().to_str().unwrap()))
+}
+
+pub fn get_pinyin_first_letter(name: &str) -> String {
+    to_pinyin_vec(name, Pinyin::first_letter).join("")
 }

@@ -12,7 +12,7 @@ pub struct Site {
     group: String,
     isActive: String,
     status: String,
-    reverseOrder: String,
+    position: f64,
 }
 
 pub fn check_init_site () {
@@ -25,8 +25,8 @@ pub fn check_init_site () {
         let sites: Vec<Site> = serde_json::from_str(&sites_str).unwrap();
         for site in sites {
             conn.execute(
-            "INSERT INTO site (key, name, api, `group`, is_active, status, reverse_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.reverseOrder),
+            "INSERT INTO site (key, name, api, `group`, is_active, status, position) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position),
             ).unwrap();
         }
     }
@@ -52,7 +52,7 @@ pub mod cmd {
                 group: row.get(4)?,
                 isActive: row.get(5)?,
                 status: row.get(6)?,
-                reverseOrder: row.get(7)?
+                position: row.get(7)?
             })
         }).unwrap();
         let sites: Vec<Site> = sites.map(|site| site.unwrap()).collect();
@@ -75,7 +75,7 @@ pub mod cmd {
                     group: row.get(4)?,
                     isActive: row.get(5)?,
                     status: row.get(6)?,
-                    reverseOrder: row.get(7)?
+                    position: row.get(7)?
                 })
             });
         match site { 
@@ -85,19 +85,23 @@ pub mod cmd {
     }
 
     #[command]
-    pub fn save_site(site: Site) {
+    pub fn save_site(mut site: Site) {
         let mut binding = CACHE.lock().unwrap();
         let conn = binding.get(DBNAME.into()).unwrap();
-        match Some(site.id) {
-            Some(_i) => conn.execute(
-                "INSERT INTO site (id, key, name, api, group, is_active, status, reverse_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                (&site.id, &site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.reverseOrder),
-            ).unwrap(),
-            None => conn.execute(
-                "UPDATE site SET key = ?1, name = ?2, api = ?3, group = ?4, is_active = ?5, status = ?6, reverse_order = ?7  WHERE id = ?8",
-                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.reverseOrder, &site.id, ),
-            ).unwrap(),
-        };
+        if site.key == "" {
+            site.key = utils::get_pinyin_first_letter(&site.name)
+        }
+        if site.id == 0  {
+            conn.execute(
+                "INSERT INTO site (key, name, api, `group`, is_active, status, position) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position),
+            ).unwrap();
+        } else {
+            conn.execute(
+                "UPDATE site SET key = ?1, name = ?2, api = ?3, `group` = ?4, is_active = ?5, status = ?6, position = ?7  WHERE id = ?8",
+                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position, &site.id, ),
+            ).unwrap();
+        }
     }
     
     #[command]
@@ -106,8 +110,8 @@ pub mod cmd {
         let conn = binding.get(DBNAME.into()).unwrap();
         for site in sites {
             conn.execute(
-                "INSERT INTO site (id, key, name, api, group, is_active, status, reverse_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                (&site.id, &site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.reverseOrder),
+                "INSERT INTO site (id, key, name, api, `group`, is_active, status, position) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                (&site.id, &site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position),
             ).unwrap();
         }
     }

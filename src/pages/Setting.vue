@@ -3,13 +3,12 @@
     <div class="setting-box vop-scroll">
       <div class="logo"><img src="@/assets/image/logo.png" alt="" /></div>
       <div class="info">
-        <a @click="linkOpen('http://zyplayer.fun/')">官网</a>
-        <a @click="linkOpen('https://github.com/Hunlongyu/ZY-Player')"
+        <a @click="linkOpen('https://github.com/fangcongyang/video')"
           >Github</a
         >
         <a
           @click="
-            linkOpen('https://github.com/Hunlongyu/ZY-Player/discussions/776')
+            linkOpen('https://github.com/fangcongyang/video/discussions/1')
           "
           >软件完全免费，如遇收费，请立即给差评并退费！</a
         >
@@ -42,11 +41,6 @@
           <div class="vop-select">
             <div class="vs-placeholder vs-noAfter" @click="expShortcut">
               <span>导出</span>
-            </div>
-          </div>
-          <div class="vop-select">
-            <div class="vs-placeholder vs-noAfter" @click="impShortcut">
-              <span>导入</span>
             </div>
           </div>
           <div class="vop-select">
@@ -102,6 +96,26 @@
               </ul>
             </div>
           </div>
+          <div class="vop-array-input">
+            <span>主分类</span><el-input v-model="settingInfo.rootClass" placeholder="输入后按回车确认" class="vop-input"
+              allow-clear 
+              @keyup.enter="addRootClassFilter()" />
+            <div class="tags">
+              <div v-for="(o,index) in systemConf.rootClassFilter" :key="index" class="tag">
+                {{ o }}<el-icon class="icon" style="margin-left: 4px;font-size: 12px;" @click="removeRootClassFilter(o)"><Close /></el-icon>
+              </div>
+            </div>
+          </div>
+          <div class="vop-array-input">
+            <span>R18禁分类</span><el-input v-model="settingInfo.r18Class" placeholder="输入后按回车确认" class="vop-input"
+              allow-clear 
+              @keyup.enter="addR18ClassFilter()" />
+            <div class="tags">
+              <div v-for="(o,index) in systemConf.r18ClassFilter" :key="index" class="tag">
+                {{ o }}<el-icon class="icon" style="margin-left: 4px;font-size: 12px;" @click="removeR18ClassFilter(o)"><Close /></el-icon>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
       <div class="setting-item">
@@ -137,11 +151,6 @@
       <div class="setting-item">
         <div class="title">直播源管理</div>
         <div class="setting-item-box">
-          <div class="vop-select">
-            <div class="vs-placeholder vs-noAfter" @click="view = 'IPTV'">
-              <span>编辑直播源</span>
-            </div>
-          </div>
           <div class="vop-input">
             <input
               type="checkbox"
@@ -190,14 +199,6 @@
               @click="settingInfo.configDefaultParseUrlDialog = true"
             >
               <span>设置默认解析接口</span>
-            </div>
-          </div>
-          <div class="vop-select">
-            <div
-              class="vs-placeholder vs-noAfter"
-              @click="settingInfo.configSitesDataUrlDialog = true"
-            >
-              <span>设置源站接口文件</span>
             </div>
           </div>
         </div>
@@ -284,34 +285,6 @@
       </el-dialog>
     </div>
     <div>
-      <!-- 设置源站接口文件 -->
-      <el-dialog
-        :visible="settingInfo.configSitesDataUrlDialog"
-        v-if="settingInfo.configSitesDataUrlDialog"
-        title="设置源站接口文件"
-        :append-to-body="true"
-        @close="closeDialog"
-      >
-        <el-form label-width="45px" label-position="left">
-          <el-form-item label="URL:">
-            <el-input
-              v-model="setting.sitesDataURL"
-              :autosize="{ minRows: 2, maxRows: 4 }"
-              type="textarea"
-              placeholder="请输入解析接口地址，为空时会自动设置，重置时会自动更新默认接口地址"
-            />
-          </el-form-item>
-        </el-form>
-        <span slot="footer" class="dialog-footer">
-          <el-button @click="closeDialog">取消</el-button>
-          <el-button type="danger" @click="resetDefaultSitesDataURL"
-            >重置</el-button
-          >
-          <el-button type="primary" @click="configSitesDataURL">确定</el-button>
-        </span>
-      </el-dialog>
-    </div>
-    <div>
       <!-- 输入密码页面 -->
       <el-dialog :visible.sync="settingInfo.checkPasswordDialog" v-if='settingInfo.checkPasswordDialog' :append-to-body="true" 
         @close="closeDialog" width="300px">
@@ -392,6 +365,10 @@ import { writeText } from "@tauri-apps/api/clipboard";
 import { open } from "@tauri-apps/api/shell";
 import { getVersion } from "@tauri-apps/api/app";
 import { ElMessage } from "element-plus";
+import { _ } from "lodash";
+import {
+  Close
+} from "@element-plus/icons-vue";
 
 export default defineComponent({
   name: "Setting",
@@ -408,10 +385,11 @@ export default defineComponent({
       shortcut: false,
       excludeRootClasses: false,
       excludeR18Films: false,
-      configSitesDataUrlDialog: false,
       configDefaultParseUrlDialog: false,
       checkPasswordDialog: false,
       changePasswordDialog: false,
+      rootClass: "",
+      r18Class: "",
     });
 
     const expShortcut = async () => {
@@ -434,7 +412,6 @@ export default defineComponent({
       settingInfo.checkPasswordDialog = false
       // this.show.changePasswordDialog = false
       settingInfo.configDefaultParseUrlDialog = false
-      settingInfo.configSitesDataUrlDialog = false
       // if (this.show.proxyDialog) {
       //   this.show.proxyDialog = false
       //   this.setting.proxy.type = 'none'
@@ -478,6 +455,32 @@ export default defineComponent({
       // }
     }
 
+    const addRootClassFilter = () => {
+      systemConf.value.rootClassFilter.push(settingInfo.rootClass);
+      settingInfo.rootClass = "";
+      updateSystemConf();
+    }
+
+    const removeRootClassFilter = (o) => {
+      systemConf.value.rootClassFilter = _.remove(systemConf.value.rootClassFilter, function(n) {
+        return n != o;
+      });
+      updateSystemConf();
+    }
+
+    const addR18ClassFilter = () => {
+      systemConf.value.r18ClassFilter.push(settingInfo.r18Class);
+      settingInfo.rootClass = "";
+      updateSystemConf();
+    }
+
+    const removeR18ClassFilter = (o) => {
+      systemConf.value.r18ClassFilter = _.remove(systemConf.value.r18ClassFilter, function(n) {
+        return n != o;
+      });
+      updateSystemConf();
+    }
+
     onBeforeMount(() => {
       getSystemConf();
       getPlayerConf();
@@ -495,7 +498,12 @@ export default defineComponent({
       closeDialog,
       changePasswordEvent,
       checkPasswordEvent,
-      editSitesEvent
+      editSitesEvent,
+      addRootClassFilter,
+      Close,
+      removeRootClassFilter,
+      addR18ClassFilter,
+      removeR18ClassFilter,
     };
   },
 });
@@ -536,7 +544,6 @@ export default defineComponent({
 //         this.d = res
 //         this.setting = this.d
 //         if (!this.setting.defaultParseURL) this.configDefaultParseURL()
-//         if (!this.setting.sitesDataURL) this.resetDefaultSitesDataURL()
 //       })
 //     },
 //     getShortcut () {
@@ -561,32 +568,10 @@ export default defineComponent({
 //       this.show.configDefaultParseUrlDialog = false
 //       this.updateSettingEvent()
 //     },
-//     resetDefaultSitesDataURL () {
-//       this.setting.sitesDataURL = 'https://raw.iqiq.io/Hunlongyu/ZY-Player-Resources/main/Sites/20220713.json'
-//     },
-//     configSitesDataURL () {
-//       if (!this.setting.sitesDataURL) this.resetDefaultSitesDataURL()
-//       this.d.sitesDataURL = this.setting.sitesDataURL
-//       this.show.configSitesDataUrlDialog = false
-//       this.updateSettingEvent()
-//     },
 //     confirmedChangePasswordEvent () {
 //       this.d.password = this.inputPassword
 //       this.updateSettingEvent()
 //       this.closeDialog()
-//     },
-//     impShortcut () {
-//       const str = clipboard.readText()
-//       const json = JSON.parse(str)
-//       shortcut.clear().then(res => {
-//         this.$message.info('已清空原数据')
-//         shortcut.add(json).then(e => {
-//           this.$message.success('已添加成功')
-//           this.getShortcut()
-//           this.d.shortcutModified = true
-//           this.updateSettingEvent()
-//         })
-//       })
 //     },
 //     resetShortcut () {
 //       shortcut.clear().then(shortcut.add(defaultShortcuts)).then(res => {
@@ -714,6 +699,30 @@ export default defineComponent({
       margin-top: 10px;
       .vop-select {
         margin-right: 20px;
+      }
+      .vop-array-input {
+        margin-top: 10Px;
+        .vop-input{
+          width: 50%;
+          margin-left: 10Px;
+        }
+        .tags {
+          display: flex;
+          flex-wrap: wrap;
+          padding: 4px 0;
+          .tag {
+            color: rgba(0, 0, 0, 0.25);
+            background-color: #F0F2F5;
+            opacity: 1;
+            padding: 3px 8px;
+            margin: 0px 10px 4px 0px;
+            border: 1px solid #DCDFE6;
+            border-radius: 4px;
+            .icon {
+              cursor: pointer;
+            }
+          }
+        }
       }
     }
   }
