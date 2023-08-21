@@ -14,6 +14,7 @@ pub fn init(app: &mut App) -> std::result::Result<(), Box<dyn std::error::Error>
       .title("vop")
       .resizable(true)
       .fullscreen(false)
+      .disable_file_drop_handler()
       .inner_size(app_conf.systemConf.mainWidth, app_conf.systemConf.mainHeight)
       .center()
       .decorations(false)

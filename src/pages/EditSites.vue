@@ -47,9 +47,10 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
+			<el-table-column label="ID" prop="id" width="70px" align="center" />
           <el-table-column type="selection" v-if="siteInfo.enableBatchEdit">
           </el-table-column>
-          <el-table-column prop="name" label="资源名"> </el-table-column>
+          <el-table-column class="siteTableName" prop="name" label="资源名"> </el-table-column>
           <el-table-column
             prop="isActive"
             width="120"
@@ -67,17 +68,6 @@
                 inactive-value="0"
                 @click.native.stop="propChangeEvent(scope.row)"
               >
-              </el-switch>
-            </template>
-          </el-table-column>
-          <el-table-column prop="reverseOrder" width="120" label="倒序排列">
-            <template #default="scope">
-              <el-switch
-                v-model="scope.row.reverseOrder"
-                active-value="1"
-                inactive-value="0"
-                @click.native.stop="propChangeEvent(scope.row)"
-                >
               </el-switch>
             </template>
           </el-table-column>
@@ -127,6 +117,7 @@
         </el-table>
       </div>
     </div>
+    
     <!-- 编辑页面 -->
     <div>
       <el-dialog v-model="siteInfo.editSiteDialogVisible" v-if='siteInfo.editSiteDialogVisible' :title="siteInfo.dialogType==='edit'?'编辑源':'新增源'" 
@@ -358,7 +349,7 @@ export default defineComponent({
         ElMessage.info("正在检测, 请勿操作.");
         return false;
       }
-      this.updateDatabase(this.sites);
+      // this.updateDatabase(this.sites);
     };
 
     const moveToTopEvent = (i) => {
@@ -525,14 +516,17 @@ export default defineComponent({
         ElMessage.info('正在检测, 请勿操作.')
         return false
       }
-      const tbody = document.getElementById('sites-table').querySelector('.el-table__body-wrapper tbody');
+      const tbody = document.getElementById('sites-table').querySelector('.el-table__body tbody');
       Sortable.create(tbody, {
+        group: 'shared',
+        animation: 150,
         async onEnd ({ newIndex, oldIndex }) {
           const currSite = siteList.value.splice(oldIndex, 1)[0];
           // 前第一个数据的位置
           let prevPosition;
           // 后第一个数据的位置
           let nextPosition;
+          console.log(newIndex, oldIndex)
           if (newIndex > oldIndex) {
             prevPosition = siteList.value[newIndex].position;
             nextPosition = newIndex == starInfo.starFilterList.length - 1 ? 0 : siteList.value[newIndex + 1].position;
@@ -556,11 +550,13 @@ export default defineComponent({
     })
 
     onBeforeMount(() => {
-      getAllSite();
+      // getAllSite();
     });
-    
+
     onMounted(() => {
-      rowDrop();
+      getAllSite().then(() => {
+        rowDrop();
+      })
     })
 
     return {
