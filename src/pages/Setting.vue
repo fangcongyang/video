@@ -286,11 +286,11 @@
     </div>
     <div>
       <!-- 输入密码页面 -->
-      <el-dialog :visible.sync="settingInfo.checkPasswordDialog" v-if='settingInfo.checkPasswordDialog' :append-to-body="true" 
+      <el-dialog v-model="settingInfo.checkPasswordDialog" v-if='settingInfo.checkPasswordDialog' :append-to-body="true" 
         @close="closeDialog" width="300px">
         <el-form label-width="75px" label-position="left">
           <el-form-item label="当前密码" prop='name'>
-            <el-input v-model="inputPassword" placeholder="请输入您的当前密码" />
+            <el-input v-model="settingInfo.inputPassword" placeholder="请输入您的当前密码" />
           </el-form-item>
         </el-form>
         <span slot="footer" class="dialog-footer">
@@ -301,17 +301,18 @@
     </div>
     <div>
       <!-- 修改密码页面 -->
-      <!-- <el-dialog :visible.sync="show.changePasswordDialog" v-if='show.changePasswordDialog' :append-to-body="true" @close="closeDialog" width="300px">
+      <el-dialog v-model="settingInfo.changePasswordDialog" v-if='settingInfo.changePasswordDialog' :append-to-body="true" 
+        @close="closeDialog" width="300px">
         <el-form label-width="75px" label-position="left">
           <el-form-item label="新密码" prop='name'>
-            <el-input v-model="inputPassword" placeholder="请输入您的新密码" />
+            <el-input v-model="settingInfo.inputPassword" placeholder="请输入您的新密码" />
           </el-form-item>
         </el-form>
         <span slot="footer" class="dialog-footer">
           <el-button @click="closeDialog">取消</el-button>
           <el-button type="primary" @click="confirmedChangePasswordEvent">确定</el-button>
         </span>
-      </el-dialog> -->
+      </el-dialog>
     </div>
     <div>
       <!-- 代理设置界面 -->
@@ -366,6 +367,7 @@ import { open } from "@tauri-apps/api/shell";
 import { getVersion } from "@tauri-apps/api/app";
 import { ElMessage } from "element-plus";
 import { _ } from "lodash";
+import bcrypt from "bcryptjs";
 import {
   Close
 } from "@element-plus/icons-vue";
@@ -374,7 +376,7 @@ export default defineComponent({
   name: "Setting",
   setup() {
     const coreStore = useCoreStore();
-    const { getPlayerConf, getSystemConf, updatePlayerConf, updateSystemConf } =
+    const { getPlayerConf, getSystemConf, updatePlayerConf, updateSystemConf, refreshSystemConf } =
       coreStore;
     const { view, systemConf, playerConf } = storeToRefs(coreStore);
 
@@ -390,6 +392,8 @@ export default defineComponent({
       changePasswordDialog: false,
       rootClass: "",
       r18Class: "",
+      inputPassword: "",
+      action: "",
     });
 
     const expShortcut = async () => {
@@ -410,7 +414,7 @@ export default defineComponent({
     
     const closeDialog = () => {
       settingInfo.checkPasswordDialog = false
-      // this.show.changePasswordDialog = false
+      settingInfo.changePasswordDialog = false
       settingInfo.configDefaultParseUrlDialog = false
       // if (this.show.proxyDialog) {
       //   this.show.proxyDialog = false
@@ -419,12 +423,12 @@ export default defineComponent({
       //   this.$message.info('取消使用代理')
       //   zy.proxy()
       // }
-      // this.inputPassword = ''
+      settingInfo.inputPassword = ''
     }
     
     const changePasswordEvent = () => {
-      if (this.d.password) {
-        this.action = 'ChangePassword'
+      if (systemConf.value.encryptedPassword) {
+        settingInfo.action = 'ChangePassword'
         settingInfo.checkPasswordDialog = true
       } else {
         settingInfo.changePasswordDialog = true
@@ -432,27 +436,40 @@ export default defineComponent({
     }
 
     const checkPasswordEvent = () => {
-      if (this.inputPassword === this.d.password) {
-        this.closeDialog()
-        if (this.action === 'EditSites') {
-          this.view = 'EditSites'
-        } else if (this.action === 'ChangePassword') {
-          this.show.changePasswordDialog = true
-        } else if (this.action === 'CleanDB') {
+      let pwdSuccess = systemConf.value.encryptedPassword ? false : true;
+      if (!pwdSuccess) {
+        pwdSuccess = bcrypt.compareSync(settingInfo.inputPassword, systemConf.value.encryptedPassword)
+      }
+      if (pwdSuccess) {
+        closeDialog()
+        if (settingInfo.action === 'EditSites') {
+          view.value = 'EditSites'
+        } else if (settingInfo.action === 'ChangePassword') {
+          settingInfo.changePasswordDialog = true
+        } else if (settingInfo.action === 'CleanDB') {
           this.clearDB()
         }
       } else {
-        this.$message.error('您输入的密码错误，请重试')
+        ElMessage.error('您输入的密码错误，请重试')
       }
     }
     
+    const confirmedChangePasswordEvent = () => {
+      const salt = bcrypt.genSaltSync(10);
+      const hash = bcrypt.hashSync(settingInfo.inputPassword, salt);
+      systemConf.value.encryptedPassword = hash;
+      updateSystemConf();
+      refreshSystemConf();
+      closeDialog()
+    }
+    
     const editSitesEvent = () => {
-      // if (this.d.password) {
-      //   this.action = 'EditSites'
-      //   this.show.checkPasswordDialog = true
-      // } else {
+      if (systemConf.value.encryptedPassword) {
+        settingInfo.action = 'EditSites'
+        settingInfo.checkPasswordDialog = true
+      } else {
         view.value = 'EditSites'
-      // }
+      }
     }
 
     const addRootClassFilter = () => {
@@ -481,6 +498,23 @@ export default defineComponent({
       updateSystemConf();
     }
 
+    const clearDBEvent = () => {
+      if (systemConf.value.encryptedPassword) {
+        settingInfo.action = 'CleanDB'
+        settingInfo.checkPasswordDialog = true
+      } else {
+        clearDB()
+      }
+    }
+    
+    const clearDB = () => {
+      db.delete().then(res => {
+        ElMessage.success('重置成功')
+        const win = remote.getCurrentWindow()
+        win.destroy()
+      })
+    }
+
     onBeforeMount(() => {
       getSystemConf();
       getPlayerConf();
@@ -504,24 +538,19 @@ export default defineComponent({
       removeRootClassFilter,
       addR18ClassFilter,
       removeR18ClassFilter,
+      clearDBEvent,
+      confirmedChangePasswordEvent,
     };
   },
 });
-// import { localKey as defaultShortcuts } from '../lib/dexie/initData'
 // export default {
 //   data () {
 //     return {
 //       shortcutList: [],
 //       show: {
-//         site: false,
-//         view: false,
-//         checkPasswordDialog: false,
-//         changePasswordDialog: false,
 //         proxy: false,
 //         proxyDialog: false,
 //       },
-//       inputPassword: '',
-//       action: '',
 //       proxy: {
 //         type: '',
 //         scheme: '',
@@ -568,11 +597,6 @@ export default defineComponent({
 //       this.show.configDefaultParseUrlDialog = false
 //       this.updateSettingEvent()
 //     },
-//     confirmedChangePasswordEvent () {
-//       this.d.password = this.inputPassword
-//       this.updateSettingEvent()
-//       this.closeDialog()
-//     },
 //     resetShortcut () {
 //       shortcut.clear().then(shortcut.add(defaultShortcuts)).then(res => {
 //         this.getShortcut()
@@ -602,21 +626,6 @@ export default defineComponent({
 //       zy.proxy()
 //       this.$message.info('开始使用代理')
 //     },
-//     clearDBEvent () {
-//       if (this.d.password) {
-//         this.action = 'CleanDB'
-//         this.show.checkPasswordDialog = true
-//       } else {
-//         this.clearDB()
-//       }
-//     },
-//     clearDB () {
-//       db.delete().then(res => {
-//         this.$message.success('重置成功')
-//         const win = remote.getCurrentWindow()
-//         win.destroy()
-//       })
-//     },
 //     checkUpdate () {
 //       ipcRenderer.send('checkForUpdate')
 //       ipcRenderer.on('update-available', (e, info) => {
@@ -642,23 +651,11 @@ export default defineComponent({
 //     installUpdate () {
 //       ipcRenderer.send('quitAndInstall')
 //     },
-//     createContextMenu () {
-//       const { Menu, MenuItem } = remote
-//       const menu = new Menu()
-//       menu.append(new MenuItem({ label: '快速复制', role: 'copy' }))
-//       menu.append(new MenuItem({ label: '快速粘贴', role: 'paste' }))
-//       menu.append(new MenuItem({ label: '编辑', role: 'editMenu' }))
-//       window.addEventListener('contextmenu', e => {
-//         e.preventDefault()
-//         menu.popup(remote.getCurrentWindow())
-//       })
-//     }
 //   },
 //   created () {
 //     this.getSetting()
 //     this.getShortcut()
 //     this.checkUpdate()
-//     this.createContextMenu()
 //   }
 // }
 </script>

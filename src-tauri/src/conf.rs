@@ -35,6 +35,7 @@ pub_struct!(SystemConf {
   mainWidth: f64,
   mainHeight: f64,
   shortcutModified: bool,
+  encryptedPassword: String,
 });
 
 impl SystemConf {
@@ -54,6 +55,7 @@ impl SystemConf {
       mainWidth: 1080.0,
       mainHeight: 720.0,
       shortcutModified: false,
+      encryptedPassword: "".into(),
     }
   }
 }

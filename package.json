@@ -12,6 +12,8 @@
   "dependencies": {
     "@element-plus/icons-vue": "^2.1.0",
     "@tauri-apps/api": "^1.4.0",
+    "axios": "^1.4.0",
+    "bcryptjs": "^2.4.3",
     "cheerio": "^1.0.0-rc.12",
     "dplayerplus": "0.0.1",
     "element-plus": "^2.3.8",

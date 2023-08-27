@@ -19,6 +19,9 @@ pub fn read_init_data_file(data_name: &str) -> String {
     let mut path = app_install_root();
     path.pop();
     path = path.join("initData").join(data_name);
+    if !exists(&path) {
+        return "[]".to_string();
+    }
     let contents = read_to_string(path)
     .expect("Should have been able to read the file");
     contents

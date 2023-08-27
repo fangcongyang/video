@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { invoke } from "@tauri-apps/api/tauri";
+import { ElMessage } from "element-plus";
 
 export const useCoreStore = defineStore('core', {
     state: () => {
@@ -32,6 +33,7 @@ export const useCoreStore = defineStore('core', {
           mainWidth: 1080.0,
           mainHeight: 720.0,
           shortcutModified: false,
+          encryptedPassword: "",
         },
         playerConf: {
           volume: 0.6,
@@ -94,7 +96,7 @@ export const useCoreStore = defineStore('core', {
         if (this.systemConf.shiftTooltipLimitTimes) {
           ElMessage.info('多选时支持shift快捷键');
           this.systemConf.shiftTooltipLimitTimes--;
-          updateSystemConf();
+          this.updateSystemConf();
         }
       }
 

@@ -20,6 +20,7 @@
         placeholder="类型"
         :popper-append-to-body="false"
         popper-class="popper"
+        style="width: 210Px;"
         @change="classClick"
         v-if="classList && classList.length"
         v-show="!moviesInfo.showFind"
@@ -172,7 +173,7 @@
       >
         <Waterfall
           v-infinite-scroll="infiniteHandler"
-          infinite-scroll-distance="600"
+          infinite-scroll-distance="100"
           ref="moviesWaterfall"
           :list="moviesInfo.moviesFilteredList"
           :gutter="20"
@@ -233,7 +234,7 @@
           :empty-text="moviesInfo.statusText"
           @row-click="detailEvent"
           v-infinite-scroll="infiniteHandler"
-          infinite-scroll-distance="200"
+          infinite-scroll-distance="100"
           style="width: 100%"
         >
           <el-table-column prop="name" label="片名"> </el-table-column>
@@ -822,9 +823,7 @@ export default defineComponent({
       let typeTid = moviesInfo.classType.id;
       let page = moviesPageInfo.value.pageCount;
       let totalPageCount = moviesPageInfo.value.totalPageCount;
-      if (moviesInfo.currentSite.reverseOrder) {
-        page = totalPageCount - page + 1;
-      }
+      page = totalPageCount - page + 1;
       moviesInfo.statusText = " ";
       if (key === undefined || page < 1 || page > totalPageCount) {
         moviesInfo.statusText = "暂无数据";
@@ -850,13 +849,7 @@ export default defineComponent({
                         "[object Array]" &&
                         e.dl.dd.some((i) => i._t)))
                 );
-                if (!moviesInfo.currentSite.reverseOrder) {
-                  // zy.list 返回的是按时间从旧到新排列, 我门需要翻转为从新到旧
-                  moviesPageInfo.value.moviesList.push(...res.reverse());
-                } else {
-                  // 如果是需要解析的视频网站，zy.list已经是按从新到旧排列
-                  moviesPageInfo.value.moviesList.push(...res);
-                }
+                moviesPageInfo.value.moviesList.push(...res);
               } else if (type === "[object Object]") {
                 if (
                   res.dl.dd &&
@@ -1047,6 +1040,7 @@ export default defineComponent({
       if (!moviesInfo.searchTxt) {
         moviesInfo.searchContents = [];
         moviesInfo.showFind = false;
+        moviesInfo.searchRunning = false;
         initSite();
       }
     };
@@ -1060,8 +1054,9 @@ export default defineComponent({
       async () => {
         if (moviesInfo.searchTxt === "清除历史记录...") {
           await invoke("del_all_search_record", {});
+          refreshSearchRecordList();
           moviesInfo.searchTxt = "";
-          searchChangeEvent();
+          searchClearEvent();
         }
       }
     );

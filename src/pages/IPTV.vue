@@ -34,8 +34,8 @@
             : ""
         }}
       </el-button>
-      <el-button @click.stop="resetChannelsEvent" :icon="RefreshLeft"
-        >重置</el-button
+      <el-button @click.stop="showIptvOnlineSearch" :icon="DataLine"
+        >在线搜索</el-button
       >
     </div>
     <div
@@ -79,7 +79,7 @@
         >删除</el-button
       >
     </div>
-    <div class="listpage-body" id="iptv-table">
+    <div class="listpage-body">
       <div class="show-table" id="iptv-table">
         <el-table
           ref="iptvTableRef"
@@ -87,7 +87,7 @@
           fit
           height="100%"
           row-key="id"
-          :data="filteredTableData()"
+          :data="filteredTableData"
           lazy
           :load="(row, treeNode, resolve) => resolve(row.channels)"
           :tree-props="{ hasChildren: 'hasChildren' }"
@@ -216,6 +216,25 @@
         </span>
       </template>
     </el-dialog>
+    <el-drawer
+      v-model="iptvInfo.showOnlineSearch"
+      title="iptv在线搜索"
+      size="400"
+      direction="rtl"
+    >
+      <el-input v-model="iptvInfo.onlineSearchTxt" @keyup.enter="iptvOnlineSearch" placeholder="请输入iptv名称" />
+      <el-table :data="iptvInfo.searchIptvList" style="width: 100%">
+        <el-table-column prop="iptvName" show-overflow-tooltip label="IPTV名称" />
+        <el-table-column prop="iptvUrl" label="IPTV播放地址" show-overflow-tooltip width="120" />
+        <el-table-column label="操作">
+          <template #default="scope">
+            <el-button size="small" @click="addChnanel(scope.row)" link>
+              保存
+            </el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-drawer>
   </div>
 </template>
 <script>
@@ -225,8 +244,10 @@ import {
   watch,
   nextTick,
   ref,
+  computed,
+  onMounted,
 } from "vue";
-import { ElMessage } from "element-plus";
+import { ElMessage, ElLoading } from "element-plus";
 import { useCoreStore } from "@/store";
 import { useIptvStore } from "@/store/iptv";
 import { storeToRefs } from "pinia";
@@ -241,8 +262,9 @@ import {
 } from "@/business/iptv";
 import fetch from "@/api/fetch";
 import iptvApi from "@/api/iptv";
-import { _ as lodash } from "lodash";
-import { Upload, Download, Refresh, RefreshLeft, Search } from "@element-plus/icons-vue";
+import { _ } from "lodash";
+import { Upload, Download, Refresh, DataLine, Search } from "@element-plus/icons-vue";
+import Sortable from 'sortablejs'
 
 export default defineComponent({
   name: "Iptv",
@@ -261,6 +283,8 @@ export default defineComponent({
       selectionBegin: "",
       selectionEnd: "",
       multipleSelection: [],
+      showOnlineSearch: false,
+      searchIptvList: [],
     });
     const coreStore = useCoreStore();
     const { video, view, systemConf, shiftDown } = storeToRefs(coreStore);
@@ -329,7 +353,7 @@ export default defineComponent({
           if (i.includes("http") && validityIptvUrl(url)) {
             const j = i.split(",");
             const doc = {
-              id: lodash.uniqueId("channel_"),
+              id: _.uniqueId("channel_"),
               name: j[0],
               url: j[1],
               ative: "1",
@@ -377,7 +401,7 @@ export default defineComponent({
               if (ele.name && url && validityIptvUrl(url)) {
                 // 网址可能带参数
                 const doc = {
-                  id: lodash.uniqueId("channel_"),
+                  id: _.uniqueId("channel_"),
                   name: ele.name,
                   url: url,
                   ative: "1",
@@ -411,7 +435,7 @@ export default defineComponent({
               if (i.includes("http")) {
                 const j = i.split(",");
                 const doc = {
-                  id: lodash.uniqueId("channel_"),
+                  id: 0,
                   name: j[0],
                   url: j[1],
                   ative: "1",
@@ -424,7 +448,6 @@ export default defineComponent({
             const uniqueList = docs.filter(
               (item) => !channelMap.value[item.url]
             );
-            console.log(uniqueList);
             addChannelList(uniqueList);
             ElMessage.success("导入成功");
           } catch (error) {
@@ -434,6 +457,21 @@ export default defineComponent({
         }
       });
     };
+
+    const addChnanel = (row) => {
+      if (channelMap.value[row.iptvUrl]) {
+        ElMessage.warning("当前资源已存在");
+        return;
+      }
+      const doc = {
+        id: 0,
+        name: row.iptvName,
+        url: row.iptvUrl,
+        active: "1",
+        status: "可用",
+      };
+      addChannelList([doc]);
+    }
 
     const addChannelList = async (uniqueList) => {
       const uniqueChannelName = {};
@@ -457,11 +495,7 @@ export default defineComponent({
         const channelGroupList = Object.keys(uniqueChannelName).map((e) => {
           const channelGroupName = determineGroup(e);
           let channelGroup = channelGroupMap.value[e + channelGroupName];
-          if (channelGroup) {
-            channelGroup.channels = channelGroup.channels.concat(
-              uniqueChannelName[e]
-            );
-          } else {
+          if (!channelGroup) {
             channelGroup = {
               id: 0,
               name: e,
@@ -470,14 +504,22 @@ export default defineComponent({
                 : "0",
               status: "可用",
               channelGroup: channelGroupName,
-              hasChildren: uniqueChannelName[e].length > 1 ? "1" : "0",
-              channels: uniqueChannelName[e],
+              channels: [],
             };
             channelGroupMap.value[e + channelGroupName] = channelGroup;
           }
+          channelGroup.channels = channelGroup.channels.concat(
+            uniqueChannelName[e]
+          );
+          let id = 1;
+          channelGroup.channels.forEach((channel) =>{
+            channel.id = id.toString();
+            id += 1;
+          })
+          channelGroup.hasChildren = channelGroup.channels.length > 1 ? "1" : "0";
           return channelGroup;
         });
-
+        
         await invoke("save_channel_groups", { channelGroups: channelGroupList });
         refreshChannelGroupList();
       }
@@ -485,7 +527,7 @@ export default defineComponent({
     };
 
     // 查找电视
-    const filteredTableData = () => {
+    const filteredTableData = computed(() => {
       if (iptvInfo.searchTxt) {
         return channelGroupList.value.filter((x) =>
           x.name.toLowerCase().includes(iptvInfo.searchTxt.toLowerCase())
@@ -493,19 +535,23 @@ export default defineComponent({
       } else {
         return channelGroupList.value;
       }
+    });
+
+    const iptvOnlineSearch = () => {
+      const loadingInstance = ElLoading.service({ fullscreen: true })
+      iptvApi.iptvOnlineSearch(iptvInfo.onlineSearchTxt).then(res => {
+        iptvInfo.searchIptvList = res;
+        nextTick(() => {
+          loadingInstance.close()
+        })
+      }).catch((err) => {
+        loadingInstance.close()
+      })
     };
 
-    const resetChannelsEvent = () => {
-      iptvInfo.stopFlag = true;
-      if (iptvInfo.checkAllChannelsLoading) {
-        this.$message.info("部分检测还未完全终止, 请稍等...");
-        return;
-      }
-      this.channelList = [];
-      this.iptvList = [];
-      iptv
-        .clear()
-        .then(iptv.bulkAdd(defaultChannels).then(this.updateChannelList()));
+    const showIptvOnlineSearch = () => {
+      iptvInfo.searchIptvList = [];
+      iptvInfo.showOnlineSearch = true;
     };
 
     const expandChange = (row, expanded) => {
@@ -520,15 +566,11 @@ export default defineComponent({
     const playEvent = (e) => {
       let currChannelGroupId;
       if (e.url) {
-        currChannelGroupId = e.id;
+        currChannelGroupId = e.channelGroupId;
       } else {
         let channel = e.channels.filter((c) => c.active)[0];
         if (!channel) {
-          ElMessage({
-            showClose: true,
-            message: "当前频道所有源已全部停用，不可播放！",
-            type: "error",
-          });
+          ElMessage.error("当前频道所有源已全部停用，不可播放！");
           return;
         }
         currChannelGroupId = channel.channelGroupId;
@@ -570,7 +612,7 @@ export default defineComponent({
     };
 
     const handleSelectionChange = (rows) => {
-      iptvInfo.multipleSelection = lodash.cloneDeep(rows);
+      iptvInfo.multipleSelection = _.cloneDeep(rows);
     };
 
     const handleSortChange = (column, prop, order) => {
@@ -620,15 +662,16 @@ export default defineComponent({
           const ele = channelGroupList.value.find(
             (e) => e.id === row.channelGroupId
           );
-          ele.channels.splice(
-            ele.channels.findIndex((e) => e.id === row.id),
-            1
-          );
-          if (ele.channels.length) {
-            if (ele.channels.length === 1) ele.hasChildren = "0";
-            let channelGroup = lodash.cloneDeep(ele);
+          let channelGroup = _.cloneDeep(ele);
+          _.remove(channelGroup.channels, (channel) => {
+            return channel.id == row.id;
+          });
+          if (channelGroup.channels.length) {
+            channelGroup.hasChildren = channelGroup.channels.length > 1 ? "1" : "0";
             channelGroup.channels = JSON.stringify(channelGroup.channels);
             await invoke("save_channel_group", { channelGroup: channelGroup });
+          } else {
+            await invoke("del_channel_group", { id: row.channelGroupId });
           }
         } else {
           await invoke("del_channel_group", { id: row.id });
@@ -693,7 +736,7 @@ export default defineComponent({
             : "失效";
           if (ele.status === "失效") ele.active = false;
         }
-        let channelGroup = lodash.cloneDeep(ele);
+        let channelGroup = _.cloneDeep(ele);
         channelGroup.hasChildren = channelGroup.hasChildren ? "1" : "0";
         channelGroup.channels = JSON.stringify(channelGroup.channels);
         await invoke("save_channel_group", { channelGroup: channelGroup });
@@ -778,6 +821,36 @@ export default defineComponent({
         await checkSingleChannel(c)
       }
     }
+    
+    const moveToTopEvent = (row) => {
+      if (iptvInfo.checkAllChannelsLoading) {
+        ElMessage.info('正在检测, 请勿操作.')
+        return false
+      }
+      // this.channelList.sort(function (x, y) { return (x.name === i.name && x.url === i.url) ? -1 : (y.name === i.name && y.url === i.url) ? 1 : 0 })
+      if (row.channels) {
+        this.channelList.splice(this.channelList.findIndex(e => e.id === row.id), 1)
+        this.channelList.unshift(row)
+        this.updateDatabase()
+      }
+    }
+
+    const rowDrop = () => {
+      if (iptvInfo.checkAllChannelsLoading) {
+        ElMessage.info('正在检测, 请勿操作.')
+        return false
+      }
+      const tbody = document.getElementById('iptv-table').querySelector('.el-table__body-wrapper tbody')
+      const _this = this
+      this.sortableTable = new Sortable(tbody, {
+        filter: '.el-table__row--level-1', // 禁止children拖动
+        onEnd ({ newIndex, oldIndex }) {
+          const currRow = _this.channelList.splice(oldIndex, 1)[0]
+          _this.channelList.splice(newIndex, 0, currRow)
+          _this.updateDatabase()
+        }
+      })
+    }
 
     watch(
       () => view.value,
@@ -787,6 +860,10 @@ export default defineComponent({
         }
       }
     );
+
+    onMounted(() => {
+      // rowDrop();
+    })
 
     return {
       iptvInfo,
@@ -803,7 +880,7 @@ export default defineComponent({
       selectionCellClick,
       handleSortChange,
       handleSelectionChange,
-      resetChannelsEvent,
+      iptvOnlineSearch,
       checkAllChannels,
       removeEvent,
       checkChannel,
@@ -814,16 +891,18 @@ export default defineComponent({
       Download,
       Upload,
       Refresh,
-      RefreshLeft,
+      DataLine,
       removeSelectedChannels,
       mergeChannel,
       isActiveChangeEvent,
       Search,
       checkChannelsBySite,
+      moveToTopEvent,
+      showIptvOnlineSearch,
+      addChnanel,
     };
   },
 });
-// import Sortable from 'sortablejs'
 // export default {
 //   data () {
 //     return {
@@ -857,35 +936,6 @@ export default defineComponent({
 //     }
 //   },
 //   methods: {
-
-//     moveToTopEvent (row) {
-//       if (this.checkAllChannelsLoading) {
-//         this.$message.info('正在检测, 请勿操作.')
-//         return false
-//       }
-//       // this.channelList.sort(function (x, y) { return (x.name === i.name && x.url === i.url) ? -1 : (y.name === i.name && y.url === i.url) ? 1 : 0 })
-//       if (row.channels) {
-//         this.channelList.splice(this.channelList.findIndex(e => e.id === row.id), 1)
-//         this.channelList.unshift(row)
-//         this.updateDatabase()
-//       }
-//     },
-//     rowDrop () {
-//       if (this.checkAllChannelsLoading) {
-//         this.$message.info('正在检测, 请勿操作.')
-//         return false
-//       }
-//       const tbody = document.getElementById('iptv-table').querySelector('.el-table__body-wrapper tbody')
-//       const _this = this
-//       this.sortableTable = new Sortable(tbody, {
-//         filter: '.el-table__row--level-1', // 禁止children拖动
-//         onEnd ({ newIndex, oldIndex }) {
-//           const currRow = _this.channelList.splice(oldIndex, 1)[0]
-//           _this.channelList.splice(newIndex, 0, currRow)
-//           _this.updateDatabase()
-//         }
-//       })
-//     },
 //   },
 // }
 </script>

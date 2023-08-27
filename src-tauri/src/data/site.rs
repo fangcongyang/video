@@ -13,6 +13,7 @@ pub struct Site {
     isActive: String,
     status: String,
     position: f64,
+    inReverseOrder: String,
 }
 
 pub fn check_init_site () {
@@ -22,12 +23,18 @@ pub fn check_init_site () {
     
     if count == 0 {
         let sites_str = utils::read_init_data_file("sites.json");
-        let sites: Vec<Site> = serde_json::from_str(&sites_str).unwrap();
+        let mut sites: Vec<Site> = serde_json::from_str(&sites_str).unwrap();
+        let sites_18_str = utils::read_init_data_file("18+sites.json");
+        let sites_18: Vec<Site> = serde_json::from_str(&sites_18_str).unwrap();
+        sites.extend(sites_18);
+        let mut position = 20.0;
+        let in_reverse_order = "1";
         for site in sites {
             conn.execute(
-            "INSERT INTO site (key, name, api, `group`, is_active, status, position) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position),
+            "INSERT INTO site (key, name, api, `group`, is_active, status, position, in_reverse_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                (&site.key, &site.name, &site.api, &site.group, &in_reverse_order, &site.status, position, &in_reverse_order,),
             ).unwrap();
+            position += 20.0;
         }
     }
 }
@@ -52,7 +59,8 @@ pub mod cmd {
                 group: row.get(4)?,
                 isActive: row.get(5)?,
                 status: row.get(6)?,
-                position: row.get(7)?
+                position: row.get(7)?,
+                inReverseOrder: row.get(8)?,
             })
         }).unwrap();
         let sites: Vec<Site> = sites.map(|site| site.unwrap()).collect();
@@ -75,7 +83,8 @@ pub mod cmd {
                     group: row.get(4)?,
                     isActive: row.get(5)?,
                     status: row.get(6)?,
-                    position: row.get(7)?
+                    position: row.get(7)?,
+                    inReverseOrder: row.get(8)?,
                 })
             });
         match site { 
@@ -91,15 +100,21 @@ pub mod cmd {
         if site.key == "" {
             site.key = utils::get_pinyin_first_letter(&site.name)
         }
+        if site.position == 0.0 {
+            let max_position: i32 = conn.query_row("SELECT MAX(position) FROM site", (), |row| row.get(0)).unwrap_or(0);
+            site.position = (max_position + 20).into();
+        }
         if site.id == 0  {
             conn.execute(
-                "INSERT INTO site (key, name, api, `group`, is_active, status, position) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position),
+                "INSERT INTO site (key, name, api, `group`, is_active, status, position, in_reverse_order)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position, &site.inReverseOrder),
             ).unwrap();
         } else {
             conn.execute(
-                "UPDATE site SET key = ?1, name = ?2, api = ?3, `group` = ?4, is_active = ?5, status = ?6, position = ?7  WHERE id = ?8",
-                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position, &site.id, ),
+                "UPDATE site SET key = ?1, name = ?2, api = ?3, `group` = ?4, is_active = ?5, status = ?6, position = ?7, in_reverse_order ?8  
+                WHERE id = ?9",
+                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position, &site.inReverseOrder, &site.id, ),
             ).unwrap();
         }
     }
@@ -110,8 +125,9 @@ pub mod cmd {
         let conn = binding.get(DBNAME.into()).unwrap();
         for site in sites {
             conn.execute(
-                "INSERT INTO site (id, key, name, api, `group`, is_active, status, position) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                (&site.id, &site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position),
+                "INSERT INTO site (id, key, name, api, `group`, is_active, status, position, in_reverse_order) 
+                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+                (&site.id, &site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position, &site.inReverseOrder),
             ).unwrap();
         }
     }

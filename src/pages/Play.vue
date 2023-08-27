@@ -1081,7 +1081,7 @@ export default defineComponent({
       getUrls();
     }, { deep: true })
 
-    watch((view.value),
+    watch(() => view.value,
      () => {
       if (view.value === 'Play') {
         playerInfo.right.show = false
@@ -1163,16 +1163,6 @@ export default defineComponent({
 });
 
 // export default {
-//   computed: {
-//     share: {
-//       get () {
-//         return this.$store.getters.getShare
-//       },
-//       set (val) {
-//         this.SET_SHARE(val)
-//       }
-//     },
-//   },
 //   watch: {
 //     startPosition: {
 //       handler (time) {
@@ -1187,15 +1177,6 @@ export default defineComponent({
 //       deep: true
 //     }
 //   },
-//   methods: {
-//     shareEvent () {
-//       this.share = {
-//         show: true,
-//         key: this.video.key,
-//         info: this.DetailCache[this.video.key + '@' + this.video.info.id],
-//         index: this.video.info.index
-//       }
-//     },
 // }
 </script>
 <style>

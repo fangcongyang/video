@@ -12,7 +12,7 @@
         </el-button-group>
     </div>
     <div class="toolbar" v-show="starInfo.showToolbar">
-      <el-select v-model="starInfo.selectedAreas" size="small" multiple placeholder="地区" popper-class="popper" :popper-append-to-body="false"
+      <el-select v-model="starInfo.selectedAreas" multiple placeholder="地区" popper-class="popper" :popper-append-to-body="false"
         @remove-tag="refreshFilteredList" @change="refreshFilteredList">
         <el-option
           v-for="item in starAreas"
@@ -21,7 +21,7 @@
           :value="item">
         </el-option>
       </el-select>
-      <el-select v-model="starInfo.selectedTypes" size="small" multiple placeholder="类型" popper-class="popper" :popper-append-to-body="false"
+      <el-select v-model="starInfo.selectedTypes" multiple placeholder="类型" popper-class="popper" :popper-append-to-body="false"
         @remove-tag="refreshFilteredList" @change="refreshFilteredList">
         <el-option
           v-for="item in starTypes"
@@ -30,7 +30,7 @@
           :value="item">
         </el-option>
       </el-select>
-      <el-select v-model="starInfo.sortKeyword" size="small" placeholder="排序" popper-class="popper" :popper-append-to-body="false" 
+      <el-select v-model="starInfo.sortKeyword" placeholder="排序" popper-class="popper" :popper-append-to-body="false" 
         @change="refreshFilteredList">
         <el-option
           v-for="item in starInfo.sortKeywords"
@@ -41,10 +41,10 @@
       </el-select>
       <span>
        上映区间：
-       <el-input-number size="small" v-model="starInfo.selectedYears.start" :min=0 :max="new Date().getFullYear()" controls-position="right" 
+       <el-input-number v-model="starInfo.selectedYears.start" :min=0 :max="new Date().getFullYear()" controls-position="right" 
         step-strictly @change="refreshFilteredList"></el-input-number>
        至
-       <el-input-number size="small" v-model="starInfo.selectedYears.end" :min=0 :max="new Date().getFullYear()" controls-position="right" 
+       <el-input-number v-model="starInfo.selectedYears.end" :min=0 :max="new Date().getFullYear()" controls-position="right" 
         step-strictly @change="refreshFilteredList"></el-input-number>
        </span>
     </div>
@@ -57,7 +57,7 @@
     </el-divider>
     <div class="listpage-body" id="star-body">
       <div class="show-table" id="star-table"  v-if="systemConf.starViewMode === 'table'">
-        <el-table size="mini" fit height="100%" row-key="id"
+        <el-table size="small" fit height="100%" row-key="id"
           ref="starTableRef"
           :data="starInfo.starFilterList"
           :cell-class-name="checkUpdate"
@@ -111,7 +111,7 @@
             label="操作"
             header-align="center"
             align="right"
-            width="200">
+            width="240">
             <template #default="scope">
               <el-button @click.stop="playEvent(scope.row)" link>播放</el-button>
               <el-button @click.stop="shareEvent(scope.row)" link>分享</el-button>
@@ -184,7 +184,7 @@ import 'vue-waterfall-plugin-next/dist/style.css';
 import ImageLazy from '@/components/ImageLazy.vue';
 import { invoke } from '@tauri-apps/api';
 import Sortable from 'sortablejs';
-import { ElMessage } from 'element-plus';
+import { ElMessage } from "element-plus";
 import { downloadEvent } from '@/business/movie';
 import { Upload, Download, Delete, Refresh } from "@element-plus/icons-vue";
 

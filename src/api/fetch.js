@@ -1,45 +1,12 @@
 import qs from 'qs';
 import {http} from "@tauri-apps/api";
+import axios from 'axios';
+
+axios.defaults.headers.post['Content-Type'] = 'application/x-www-form-urlencoded;charset=UTF-8'
+axios.defaults.withCredentials = true
 
 //axios 请求
 export default {
-    postJson(url, params) {
-        return new Promise((resolve, reject) => {
-            axios.post(url,  qs.stringify(params))
-                .then(response => {
-                    if (response) {
-                        resolve(response)
-                    } else {
-                        reject('请求超时')
-                    }
-                   
-                }, err => {
-                    reject(err)
-                })
-                .catch((error) => {
-                    reject(error)
-                })
-        })
-    },
-    postFormData(url, params) {
-        return new Promise((resolve, reject) => {
-            axios.post(url,  params)
-                .then(response => {
-                    if(response){
-                        resolve(response)
-                    }
-                    else{
-                        reject('请求超时')
-                    }
-                   
-                }, err => {
-                    reject(err)
-                })
-                .catch((error) => {
-                    reject(error)
-                })
-        })
-    },
     get(url, params, withTimestamp = false, timeout = 10) {
         return new Promise((resolve, reject) => {
             if (withTimestamp) {
@@ -64,27 +31,34 @@ export default {
             }).then(res => {
                 resolve(res.data)
             }).catch((error) => {
-                console.log(error)
                 reject(error)
             })
         })
     },
-    upload(url, params){
+    localGet(url, params, withTimestamp = false, timeout = 10) {
         return new Promise((resolve, reject) => {
-            axios.post(url,  params)
-                .then(response => {
-                    if(response){
-                        resolve(response.data)
-                    }
-                    else{
-                        reject('请求超时')
-                    }                 
-                }, err => {
-                    reject(err)
-                })
-                .catch((error) => {
-                    reject(error)
-                })
+            if (withTimestamp) {
+                let date = new Date().getTime()
+                if (params) {
+                    params['t'] = date
+                } else {
+                    params = {}
+                    params['t'] = date
+                }
+            }
+            let pp = qs.stringify(params);
+            if (pp) url += '?' + pp;
+            axios.get(url, {
+                headers: {
+                    'Content-Type': 'application/text',
+                },
+                timeout: timeout,
+                responseType: "text"
+            }).then(res => {
+                resolve(res.data)
+            }).catch((error) => {
+                reject(error)
+            })
         })
-    }
+    },
 }

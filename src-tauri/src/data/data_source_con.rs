@@ -77,7 +77,8 @@ fn init_database() {
             `group` TEXT(4) NOT NULL  , --影视
             is_active TEXT(1) NOT NULL  , --是否激活;1 激活 0不激活
             status TEXT(3) NOT NULL  , --状态;可用 不可用
-            position REAL NOT NULL --排序
+            position REAL NOT NULL, --排序
+            in_reverse_order NOT NULL --网站分页降序; 1降序 0升序 
         )",
         (),
     ).unwrap();

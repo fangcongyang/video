@@ -84,18 +84,19 @@ pub mod cmd {
         let mut binding = CACHE.lock().unwrap();
         let conn = binding.get(DBNAME.into()).unwrap();
         for channel_group in channel_groups {
-            match Some(channel_group.id) {
-                Some(_i) => conn.execute(
+            if channel_group.id == 0 {
+                conn.execute(
                     "INSERT INTO channel_group (name, channel_group, active, status, has_children, channels) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
                     (&channel_group.name, &channel_group.channelGroup, &channel_group.active, &channel_group.status, &channel_group.hasChildren,
-                        serde_json::to_string(&channel_group.channels).unwrap()),
-                ).unwrap(),
-                None => conn.execute(
+                        serde_json::to_string(&channel_group.channels).unwrap())
+                ).unwrap();
+            } else {
+                conn.execute(
                     "UPDATE channel_group SET name = ?1, active = ?2, status = ?3, has_children = ?4, channels = ?5  WHERE id = ?6",
                     (&channel_group.name, &channel_group.active, &channel_group.status, &channel_group.hasChildren, 
-                        serde_json::to_string(&channel_group.channels).unwrap(), &channel_group.id, ),
-                ).unwrap(),
-            };
+                        serde_json::to_string(&channel_group.channels).unwrap(), &channel_group.id, )
+                ).unwrap();
+            }
         }
     }
 

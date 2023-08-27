@@ -1,14 +1,14 @@
 <template>
   <div class="listpage" id="history">
     <div class="listpage-header" id="history-header">
-        <el-button @click.stop="exportHistory" icon="el-icon-upload2" title="导出全部，自动添加扩展名">导出</el-button>
-        <el-button @click.stop="importHistory" icon="el-icon-download" title="支持同时导入多个文件">导入</el-button>
-        <el-button @click.stop="removeSelectedItems" icon="el-icon-delete-solid">
+        <el-button @click.stop="exportHistory" :icon="Upload" title="导出全部，自动添加扩展名">导出</el-button>
+        <el-button @click.stop="importHistory" :icon="Download" title="支持同时导入多个文件">导入</el-button>
+        <el-button @click.stop="removeSelectedItems" :icon="Delete">
           {{ historyInfo.multipleSelection.length === 0 ? "清空" : "删除所选" }}
         </el-button>
         <el-button-group>
           <el-switch v-model="historyInfo.onlyShowItemsHasUpdate" active-text="有更新" inactive-text="全部" @change="refreshFilteredList"></el-switch>
-          <el-button @click.stop="updateAllEvent" icon="el-icon-refresh">检查更新</el-button>
+          <el-button @click.stop="updateAllEvent" :icon="Refresh">检查更新</el-button>
         </el-button-group>
     </div>
    <div class="toolbar" v-show="historyInfo.showToolbar">
@@ -178,6 +178,7 @@ import { Waterfall } from 'vue-waterfall-plugin-next';
 import 'vue-waterfall-plugin-next/dist/style.css';
 import ImageLazy from '@/components/ImageLazy.vue';
 import { ElMessage } from 'element-plus';
+import { Upload, Download, Delete, Refresh } from "@element-plus/icons-vue";
 
 export default defineComponent({
   name: 'history',
@@ -505,6 +506,10 @@ export default defineComponent({
       selectionCellClick,
       historyTableRef,
       handleSelectionChange,
+      Upload,
+      Download,
+      Delete,
+      Refresh,
     }
   }
 });

@@ -275,6 +275,7 @@ export default defineComponent({
         download: "",
         group: "",
         isActive: "1",
+        inReverseOrder: "1"
       };
     };
 
@@ -331,6 +332,9 @@ export default defineComponent({
             }
             if (ele.group === undefined) {
               ele.group = "导入";
+            }
+            if (ele.inReverseOrder === undefined) {
+              ele.inReverseOrder = "1";
             }
           }
         });
@@ -482,6 +486,7 @@ export default defineComponent({
         isActive: site.value.isActive,
         status: '可用',
         position: siteInfo.dialogType === 'edit' ? site.value.position : 0,
+        inReverseOrder: site.value.inReverseOrder
       }
       await invoke("save_site", { site: doc });
       site.value = {
@@ -489,7 +494,11 @@ export default defineComponent({
         name: '',
         api: '',
         download: '',
-        group: ''
+        group: '',
+        isActive: '',
+        status: '',
+        position: 0.0,
+        inReverseOrder: ''
       }
       
       siteInfo.editSiteDialogVisible = false
@@ -550,7 +559,7 @@ export default defineComponent({
     })
 
     onBeforeMount(() => {
-      // getAllSite();
+      getAllSite();
     });
 
     onMounted(() => {

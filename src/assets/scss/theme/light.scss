@@ -390,7 +390,7 @@
       .el-input{
         input{
           background-color: var(--l-bgc-1);
-          border: 1px solid var(--l-bgc-1);
+          // border: 1px solid var(--l-bgc-1);
           color: var(--l-fc-2);
         }
       }
@@ -445,9 +445,11 @@
           }
         }
        .el-input{
-          input{
+          .el-input__wrapper {
             background-color: var(--l-bgc-2);
-            border: 1px solid var(--l-bgc-2);
+            color: var(--l-fc-1);
+          }
+          input{
             color: var(--l-fc-1);
           }
         }
