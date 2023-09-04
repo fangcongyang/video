@@ -3,7 +3,7 @@
     <Aside></Aside>
     <div class="main-body">
       <WinTool data-tauri-drag-region :minimizable="true" :maximizable="true" />
-      <Movies v-show="view === 'Movies'" />
+      <Movie v-show="view === 'Movie'" />
       <IPTV v-show="view === 'IPTV'" />
       <Play v-show="view === 'Play'" />
       <Star v-show="view === 'Star'" />
@@ -19,12 +19,12 @@
 
 <script>
 import { useCoreStore } from "@/store";
-import { useMoviesStore } from "@/store/movies";
+import { useMovieStore } from "@/store/movie";
 import { defineComponent, onMounted, onBeforeMount, watch } from "vue";
 import Aside from "@/components/Aside.vue";
 import { storeToRefs } from "pinia";
 import WinTool from "@/components/WinTool.vue";
-import Movies from "@/pages/Movies.vue";
+import Movie from "@/pages/Movie.vue";
 import IPTV from "@/pages/IPTV.vue";
 import Play from "@/pages/Play.vue";
 import Star from "@/pages/Star.vue";
@@ -38,7 +38,7 @@ export default defineComponent({
   components: {
     Aside,
     WinTool,
-    Movies,
+    Movie,
     IPTV,
     Play,
     History,
@@ -52,8 +52,8 @@ export default defineComponent({
     const { getSystemConf } = coreStore;
     const { view, shiftDown, systemConf } = storeToRefs(coreStore);
 
-    const moviesStore = useMoviesStore();
-    const { detail } = storeToRefs(moviesStore);
+    const movieStore = useMovieStore();
+    const { detail } = storeToRefs(movieStore);
 
     const isDark = useDark();
     const toggleDark = useToggle(isDark);

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { invoke } from "@tauri-apps/api/tauri";
+import { useCoreStore } from './index';
 
 export const useHistoryStore = defineStore('history', {
     state: () => {
@@ -12,6 +13,7 @@ export const useHistoryStore = defineStore('history', {
                 areas: [],
                 historyList: [],
             },
+            currentHistoryStr: "", 
         }
     },
     actions:{
@@ -42,6 +44,11 @@ export const useHistoryStore = defineStore('history', {
           this.init.historyListInit = true;
         }
       },
+
+      async refreshCurrentHistory() {
+        const core = useCoreStore()
+        this.currentHistoryStr = await invoke("get_history_by_uq", core.playMovieParams);
+      }
     },
     getters:{
       historyAreas() {
@@ -54,6 +61,10 @@ export const useHistoryStore = defineStore('history', {
 
       historyList() {
         return this.history.historyList;
+      },
+
+      currentHistory() {
+        return this.currentHistoryStr ? JSON.parse(this.currentHistoryStr) : undefined;
       },
     }
   })

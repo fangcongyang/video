@@ -5,12 +5,7 @@ import { ElMessage } from "element-plus";
 export const useCoreStore = defineStore('core', {
     state: () => {
       return {
-        view: "Movies",
-        video: {
-          isLive: false,
-          // iptv, movies, online
-          playType: "",
-        },
+        view: "Movie",
         init: {
           playerConfInit: false,
           systemConfInit: false,
@@ -43,9 +38,44 @@ export const useCoreStore = defineStore('core', {
         },
         shortcutList: [],
         shiftDown: false,
+        playInfo: {
+          playType: "movie",
+          isLive: false,
+          name: "",
+          iptv: {
+            channelGroupId: 0,
+          },
+          movie: {
+            siteKey: "",
+            ids: "",
+            index: 0,
+            videoFlag: "",
+            onlineUrl: "",
+            playMode: "local",
+          }
+        },
       }
     },
     actions:{
+
+      resetPlayInfo() {
+        this.playInfo = {
+          playType: "movie",
+          isLive: false,
+          name: "",
+          iptv: {
+            channelGroupId: 0,
+          },
+          movie: {
+            siteKey: "",
+            ids: "",
+            index: 0,
+            videoFlag: "",
+            onlineUrl: "",
+            playMode: "local",
+          }
+        }
+      },
       
       async updateSystemConf() {
         await invoke("config_update", { data: {systemConf: this.systemConf} });
@@ -102,5 +132,11 @@ export const useCoreStore = defineStore('core', {
 
     },
     getters:{
+      playMovieUq() {
+        return this.playInfo.movie.siteKey + '@' + this.playInfo.movie.ids;
+      },
+      playMovieParams() {
+        return { siteKey: this.playInfo.movie.siteKey, ids: this.playInfo.movie.ids.toString() };
+      }
     }
   })

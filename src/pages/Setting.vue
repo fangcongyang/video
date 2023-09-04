@@ -360,7 +360,6 @@
 <script>
 import { defineComponent, reactive, ref, onMounted, onBeforeMount } from "vue";
 import { useCoreStore } from "@/store";
-import { useMoviesStore } from "@/store/movies";
 import { storeToRefs } from "pinia";
 import { writeText } from "@tauri-apps/api/clipboard";
 import { open } from "@tauri-apps/api/shell";
@@ -379,9 +378,6 @@ export default defineComponent({
     const { getPlayerConf, getSystemConf, updatePlayerConf, updateSystemConf, refreshSystemConf } =
       coreStore;
     const { view, systemConf, playerConf } = storeToRefs(coreStore);
-
-    const moviesStore = useMoviesStore();
-    const {} = storeToRefs(moviesStore);
 
     const settingInfo = reactive({
       shortcut: false,

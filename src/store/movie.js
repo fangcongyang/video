@@ -1,8 +1,9 @@
 import { defineStore } from 'pinia';
 import { invoke } from "@tauri-apps/api/tauri";
 import moviesApi from '@/api/movies';
+import { useCoreStore } from './index';
 
-export const useMoviesStore = defineStore('movies', {
+export const useMovieStore = defineStore('movie', {
     state: () => {
       return {
         movieInfo: {
@@ -32,9 +33,10 @@ export const useMoviesStore = defineStore('movies', {
             show: false,
         },
         siteList: [],
-        moviesDetailCache: {
+        movieDetailCache: {
         },
         searchRecordList: [],
+        videoDetailCache: {}
       }
     },
     actions:{
@@ -46,17 +48,6 @@ export const useMoviesStore = defineStore('movies', {
         }
       },
 
-      getSiteByKey(siteKey, type = 1) {
-        const site = this.siteList.find(e => e.key === siteKey)
-        if (site) {
-          if (type == 1) {
-            return site.name
-          } else {
-            return site
-          }
-        }
-      },
-
       async refreshSiteList() {
         let siteList = await invoke("select_site", {});
         this.siteList = siteList;
@@ -65,13 +56,13 @@ export const useMoviesStore = defineStore('movies', {
       async getMoviesDetailCacheByKey(siteKey, ids) {
         return new Promise((resolve, reject) => {
           const uqkey = siteKey + '@' + ids;
-          if (!this.moviesDetailCache[uqkey]) {
+          if (!this.movieDetailCache[uqkey]) {
             moviesApi.detail(this.getSiteByKey(siteKey, 2), ids).then(res => {
-              this.moviesDetailCache[uqkey] = res
-              resolve(this.moviesDetailCache[uqkey])
+              this.movieDetailCache[uqkey] = res
+              resolve(this.movieDetailCache[uqkey])
             })
           } else {
-            resolve(this.moviesDetailCache[uqkey]);
+            resolve(this.movieDetailCache[uqkey]);
           }
         });
       },
@@ -102,10 +93,47 @@ export const useMoviesStore = defineStore('movies', {
         searchRecordList.push({ id: searchRecordList.length + 1, keywords: '清除历史记录...' })
         this.searchRecordList = searchRecordList;
       },
+
+      async fetchPlaylist(cacheKey) {
+        return new Promise((resolve, reject) => {
+          let videoInfo = this.videoDetailCache[cacheKey];
+          const core = useCoreStore()
+          if (videoInfo && videoInfo.list && videoInfo.list.length) {
+            core.playInfo.name = videoInfo.name
+            resolve(this.videoDetailCache[cacheKey].list)
+          }
+          if (!this.movieDetailCache[cacheKey]) {
+            moviesApi.detail(this.getSiteByKey(core.playInfo.movie.siteKey), core.playInfo.movie.ids).then(res => {
+              this.movieDetailCache[cacheKey] = res
+              core.playInfo.name = res.name
+              this.videoDetailCache[cacheKey] = {
+                list: res.fullList,
+                name: res.name
+              }
+              resolve(res.fullList)
+            }).catch(err => {
+              reject();
+            })
+          } else {
+            let res = this.movieDetailCache[cacheKey]
+            core.playInfo.name = res.name
+            resolve(res.fullList)
+          }
+        })
+      },
+      
+      getSiteNameByKey(siteKey) {
+        return this.getSiteByKey(siteKey).name;
+      },
+
+      getSiteByKey(siteKey) {
+        const site = this.siteList.find(e => e.key === siteKey)
+        return site
+      },
     },
     getters:{
       moviesDetail() {
         return this.detail;
-      }
+      },
     }
   })

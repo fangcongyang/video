@@ -1,8 +1,8 @@
 <template>
   <div class="aside">
     <span
-      :class="[view === 'Movies' ? 'active ' : ''] + 'dh-svg'"
-      @click="changeView('Movies')"
+      :class="[view === 'Movie' ? 'active ' : ''] + 'dh-svg'"
+      @click="changeView('Movie')"
     >
       <SvgIcon name="movie"></SvgIcon>
     </span>

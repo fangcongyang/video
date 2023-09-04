@@ -1,6 +1,7 @@
 import DPlayer from 'dplayerplus';
 import flvjs from 'flv.js';
 import Hls from 'hls.js';
+import { _ } from 'lodash';
 
 export class MoviesPlayer {
     videoName = "";
@@ -20,11 +21,12 @@ export class MoviesPlayer {
     };
     dp;
     
-    constructor(playerType, playerInfo, playerConf) {
+    constructor(playerType, playerInfo, playerConf, showPalyPrevAndNext) {
         this.dpConfig.container = document.getElementById('dpplayer'),
         this.playerType = playerType;
         this.dpConfig.volume = playerConf.volume;
         this.dpConfig.isLive = playerInfo.isLive;
+        this.dpConfig.showPalyPrevAndNext = showPalyPrevAndNext;
         switch(playerType) {
             case 'mp4':
                 this.dpConfig.video.type = "mp4";
@@ -64,8 +66,13 @@ export class MoviesPlayer {
 
     durationchange() {
         if (this.dp) {
-            const event = new Event("durationchange");
-            this.dp.container.querySelector('.dplayer-video-current').dispatchEvent(event);
+            const tm = new Map();
+            this.dpConfig.highlight = this.dpConfig.highlight.filter((item) =>
+                item.time &&
+                !tm.has(item.time) &&
+                tm.set(item.time, 1)
+            );
+            this.dp.durationchange(this.dpConfig.highlight);
         }
     }
 
@@ -90,6 +97,11 @@ export class MoviesPlayer {
             this.dp.destroy();
             this.dp = null;
         }
+    }
+
+    setHighlightByName(time, name) {
+        _.dropWhile(this.dpConfig.highlight, (o) => {return o.text == name})
+        this.dpConfig.highlight.push({time: time, text: name,})
     }
 }
 

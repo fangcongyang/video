@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { invoke } from "@tauri-apps/api/tauri";
 import { _ as lodash } from 'lodash';
+import { useCoreStore } from './index';
 
 export const useIptvStore = defineStore('iptv', {
     state: () => {
@@ -9,7 +10,6 @@ export const useIptvStore = defineStore('iptv', {
           channelGroupListInit: false,
         },
         channelId: 0,
-        channelGroupId: 0,
         channelGroupList: [],
         channelList: [],
         channelGroupMap: {},
@@ -19,10 +19,6 @@ export const useIptvStore = defineStore('iptv', {
       }
     },
     actions:{
-      getCurrentChannel() { 
-        return this.channelGroupList.filter(item => item.id == this.channelGroupId)[0];
-      },
-
       async getAllChannelGroup() { 
         if (!this.init.channelGroupListInit) {
           await this.refreshChannelGroupList();
@@ -71,8 +67,13 @@ export const useIptvStore = defineStore('iptv', {
       },
     },
     getters:{
-      getSourcePlayList() {
-        return lodash.find(this.channelGroupList, { id: this.channelGroupId }).channels;
+      currentChannel() { 
+        const core = useCoreStore();
+        return this.channelGroupList.filter(item => item.id == core.playInfo.iptv.channelGroupId)[0];
+      },
+      sourcePlayList() {
+        const core = useCoreStore();
+        return lodash.find(this.channelGroupList, { id: core.playInfo.iptv.channelGroupId }).channels;
       },
     }
   })

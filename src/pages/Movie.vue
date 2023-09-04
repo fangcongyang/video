@@ -265,7 +265,7 @@
             label="操作"
             header-align="center"
             align="right"
-            width="200"
+            width="220"
           >
             <template #default="scope">
               <el-button @click.stop="playEvent(scope.row)" link
@@ -467,7 +467,7 @@ import {
   computed,
 } from "vue";
 import { useCoreStore } from "@/store";
-import { useMoviesStore } from "@/store/movies";
+import { useMovieStore } from "@/store/movie";
 import { storeToRefs } from "pinia";
 import moviesApi from "@/api/movies";
 import { ElMessage } from "element-plus";
@@ -482,7 +482,7 @@ import doubanApi from "@/api/douban";
 const FILM_DATA_CACHE = {};
 
 export default defineComponent({
-  name: "Movies",
+  name: "Movie",
   components: {
     Waterfall,
     ImageLazy,
@@ -517,9 +517,9 @@ export default defineComponent({
     });
 
     const coreStore = useCoreStore();
-    const { view, video } = storeToRefs(coreStore);
+    const { view, playInfo } = storeToRefs(coreStore);
 
-    const moviesStore = useMoviesStore();
+    const movieStore = useMovieStore();
     const {
       getAllSite,
       getSiteByKey,
@@ -527,15 +527,14 @@ export default defineComponent({
       getMoviesConf,
       refreshSearchRecordList,
       getAllSearchRecord,
-    } = moviesStore;
+    } = movieStore;
     const {
       siteList,
       moviesDetailCache,
-      movieInfo,
       detail,
       moviesConf,
       searchRecordList,
-    } = storeToRefs(moviesStore);
+    } = storeToRefs(movieStore);
 
     const classList = ref([]);
     const moviesPageInfo = ref({
@@ -579,7 +578,7 @@ export default defineComponent({
 
     const siteClick = (siteKey) => {
       backTop();
-      moviesInfo.currentSite = getSiteByKey(siteKey, 2);
+      moviesInfo.currentSite = getSiteByKey(siteKey);
       if (moviesConf.value.searchGroup === "站内" && moviesInfo.searchTxt) {
         searchEvent();
         return;
@@ -762,14 +761,12 @@ export default defineComponent({
     };
 
     const playEvent = async (e) => {
-      video.value.playType = "movies";
-      movieInfo.value = {
-        siteKey: moviesInfo.currentSite.key,
-        ids: e.id,
-        name: e.name,
-        index: 0,
-        videoFlag: "",
-      };
+      playInfo.value.playType = "movie";
+      playInfo.value.name = e.name;
+      playInfo.value.movie.siteKey = moviesInfo.currentSite.key;
+      playInfo.value.movie.ids = e.id;
+      playInfo.value.movie.index = 0;
+      playInfo.value.movie.videoFlag = "";
       view.value = "Play";
     };
 

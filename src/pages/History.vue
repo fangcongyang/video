@@ -166,7 +166,7 @@
 import { defineComponent, reactive, onBeforeMount, watch, onMounted, ref, nextTick } from 'vue';
 import moviesApi from '@/api/movies';
 import { useCoreStore } from "@/store";
-import { useMoviesStore } from "@/store/movies";
+import { useMovieStore } from "@/store/movie";
 import { useHistoryStore } from "@/store/history";
 import { storeToRefs } from 'pinia';
 import { _ } from 'lodash';
@@ -189,11 +189,11 @@ export default defineComponent({
   setup() {
     const coreStore = useCoreStore();
     const { getSystemConf, updateSystemConf } = coreStore;
-    const { view, video, systemConf } = storeToRefs(coreStore);
+    const { view, video, systemConf, playInfo } = storeToRefs(coreStore);
 
-    const moviesStore = useMoviesStore();
-    const { getSiteByKey } = moviesStore;
-    const { movieInfo, detail } = storeToRefs(moviesStore);
+    const movieStore = useMovieStore();
+    const { getSiteByKey } = movieStore;
+    const { movieInfo, detail } = storeToRefs(movieStore);
 
     const historyStore = useHistoryStore();
     const { refreshHistoryList } = historyStore;
@@ -271,14 +271,13 @@ export default defineComponent({
       if (e.hasUpdate) {
         clearHasUpdateFlag(e)
       }
-      video.value.playType = "movies";
-      movieInfo.value = {
-        siteKey: e.siteKey,
-        ids: e.ids,
-        name: e.name,
-        index: e.index,
-        onlineUrl: e.onlinePlay,
-      }
+      playInfo.value.playType = "movie";
+      playInfo.value.name = e.name;
+      playInfo.value.movie.siteKey = e.siteKey;
+      playInfo.value.movie.ids = e.ids;
+      playInfo.value.movie.index = e.index;
+      playInfo.value.movie.onlinePlay = e.onlinePlay;
+      playInfo.value.movie.videoFlag = e.videoFlag;
       view.value = "Play";
     }
     

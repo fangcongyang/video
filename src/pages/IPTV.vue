@@ -287,12 +287,11 @@ export default defineComponent({
       searchIptvList: [],
     });
     const coreStore = useCoreStore();
-    const { video, view, systemConf, shiftDown } = storeToRefs(coreStore);
+    const { view, systemConf, shiftDown, playInfo } = storeToRefs(coreStore);
 
     const iptvStore = useIptvStore();
     const { getAllChannelGroup, refreshChannelGroupList } = iptvStore;
     const {
-      channelGroupId,
       channelGroupList,
       channelList,
       channelMap,
@@ -575,8 +574,8 @@ export default defineComponent({
         }
         currChannelGroupId = channel.channelGroupId;
       }
-      video.value.playType = "iptv";
-      channelGroupId.value = currChannelGroupId;
+      playInfo.value.playType = "iptv";
+      playInfo.value.iptv.channelGroupId = currChannelGroupId;
       view.value = "Play";
     };
 

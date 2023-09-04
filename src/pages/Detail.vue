@@ -113,7 +113,7 @@ import 'vue-waterfall-plugin-next/dist/style.css';
 import ImageLazy from '@/components/ImageLazy.vue';
 import SvgIcon from '@/components/SvgIcon.vue';
 import { useCoreStore } from "@/store";
-import { useMoviesStore } from "@/store/movies";
+import { useMovieStore } from "@/store/movie";
 import { storeToRefs } from 'pinia';
 import { invoke } from "@tauri-apps/api/tauri";
 import moviesApi from '@/api/movies';
@@ -132,9 +132,9 @@ export default defineComponent({
     const coreStore = useCoreStore();
     const { view, video } = storeToRefs(coreStore);
 
-    const moviesStore = useMoviesStore();
-    const { getSiteByKey, getMoviesDetailCacheByKey } = moviesStore;
-    const { moviesDetailCache, detail, movieInfo } = storeToRefs(moviesStore);
+    const movieStore = useMovieStore();
+    const { getSiteByKey, getMoviesDetailCacheByKey } = movieStore;
+    const { movieDetailCache, detail, movieInfo } = storeToRefs(movieStore);
 
     const detailInfo = reactive({
       loading: false,
@@ -178,7 +178,7 @@ export default defineComponent({
         detailInfo.loading = false
         if (!info.rate) {
           await getDoubanRate()
-          moviesDetailCache.value[cacheKey] = info
+          movieDetailCache.value[cacheKey] = info
         }
       }
     }

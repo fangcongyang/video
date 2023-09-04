@@ -15,7 +15,7 @@
     "axios": "^1.4.0",
     "bcryptjs": "^2.4.3",
     "cheerio": "^1.0.0-rc.12",
-    "dplayerplus": "0.0.1",
+    "dplayerplus": "0.0.6",
     "element-plus": "^2.3.8",
     "fast-xml-parser": "^4.2.4",
     "flv.js": "^1.6.2",

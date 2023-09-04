@@ -161,7 +161,7 @@ import {
   nextTick,
 } from "vue";
 import { useCoreStore } from "@/store";
-import { useMoviesStore } from "@/store/movies";
+import { useMovieStore } from "@/store/movie";
 import { storeToRefs } from "pinia";
 import { ElMessage } from "element-plus";
 import { open, save } from "@tauri-apps/api/dialog";
@@ -185,14 +185,14 @@ export default defineComponent({
     const coreStore = useCoreStore();
     const { systemConf, shiftDown } = storeToRefs(coreStore);
 
-    const moviesStore = useMoviesStore();
+    const movieStore = useMovieStore();
     const {
       getAllSite,
       refreshSiteList,
-    } = moviesStore;
+    } = movieStore;
     const {
       siteList,
-    } = storeToRefs(moviesStore);
+    } = storeToRefs(movieStore);
 
     const editSitesTableRef = ref();
 
@@ -535,7 +535,6 @@ export default defineComponent({
           let prevPosition;
           // 后第一个数据的位置
           let nextPosition;
-          console.log(newIndex, oldIndex)
           if (newIndex > oldIndex) {
             prevPosition = siteList.value[newIndex].position;
             nextPosition = newIndex == starInfo.starFilterList.length - 1 ? 0 : siteList.value[newIndex + 1].position;

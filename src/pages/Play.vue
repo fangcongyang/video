@@ -2,20 +2,20 @@
   <div class="play">
     <div class="box">
       <div class="title">
-        <span v-if="moviesInfo.moviesList.length > 1">『第 {{(movieInfo.index + 1)}} 集』</span>{{movieInfo.name}}
+        <span v-if="moviesInfo.moviesList.length > 1">『第 {{(playInfo.movie.index + 1)}} 集』</span>{{playInfo.name}}
         <span class="right" @click="closePlayerAndInit">
           <svg-icon name="close"></svg-icon>
         </span>
       </div>
-      <div class="player" v-show="movieInfo.onlineUrl === ''">
+      <div class="player" v-show="playInfo.movie.playMode === 'local'">
         <div id="dpplayer"></div>
       </div>
-      <div class="iframePlayer" v-if="movieInfo.onlineUrl !== ''" style='width:100%;height:100%;'>
-        <iframe id="iframePlayer" v-bind:src="movieInfo.onlineUrl" width="100%" height="100%" frameborder="0" scrolling="no" allow='autoplay;fullscreen'>
+      <div class="iframePlayer" v-if="playInfo.movie.playMode === 'online'" style='width:100%;height:100%;'>
+        <iframe id="iframePlayer" v-bind:src="playInfo.movie.onlineUrl" width="100%" height="100%" frameborder="0" scrolling="no" allow='autoplay;fullscreen'>
         </iframe>
       </div>
     
-      <div class="more" v-if="video.playType === 'iptv'" :key="video.playType">
+      <div class="more" v-if="playInfo.playType === 'iptv'" :key="playInfo.playType">
         <span class="zy-svg" @click="iptvInfo.showChannelGroupList = !iptvInfo.showChannelGroupList" 
           :class="iptvInfo.showChannelGroupList ? 'active' : ''">
           <svg-icon name="play-play_list" size="22" title="频道列表"></svg-icon>
@@ -27,8 +27,8 @@
           <svg-icon name="play-guide" size="22" title="快捷键指南"></svg-icon>
         </span>
       </div>
-      <div class="more" v-if="video.playType !== 'iptv'" :key="video.playType">
-        <span class="zy-svg" @click="otherEvent" v-show="movieInfo.name != ''" :class="playerInfo.right.type === 'other' ? 'active' : ''">
+      <div class="more" v-if="playInfo.playType == 'movie'" :key="playInfo.playType">
+        <span class="zy-svg" @click="otherEvent" v-show="playInfo.name != ''" :class="playerInfo.right.type === 'other' ? 'active' : ''">
           <svg-icon name="play-website" size="22" title="换源"></svg-icon>
         </span>
         <span class="zy-svg" @click="moviesListEvent" :class="playerInfo.right.type === 'movieList' ? 'active' : ''" 
@@ -48,13 +48,11 @@
           <svg-icon name="play-share" size="22" title="分享"></svg-icon>
         </span>
         <span class="zy-svg" @click="showShortcutEvent" :class="playerInfo.right.type === 'shortcut' ? 'active' : ''" 
-          v-show="!movieInfo.onlineUrl && moviesInfo.moviesList.length > 0">
+          v-show="playInfo.movie.playMode === 'local' && moviesInfo.moviesList.length > 0">
           <svg-icon name="play-guide" size="22" title="快捷键指南"></svg-icon>
         </span>
-        <span class="zy-svg" @click="issueEvent" v-show="moviesInfo.moviesList.length > 0">
-          <svg-icon name="play-debug_info" size="22" title="复制调试信息"></svg-icon>
-        </span>
-        <span class="timespanSwitch" v-if="moviesInfo.moviesList.length > 1 && !movieInfo.onlineUrl" title="跳过片头片尾，建议优先通过快捷键设置，更便捷更精准">
+        <span class="timespanSwitch" v-if="moviesInfo.moviesList.length > 1 && playInfo.movie.playMode === 'local'" 
+          title="跳过片头片尾，建议优先通过快捷键设置，更便捷更精准">
           <el-switch v-model="moviesInfo.showTimespanSetting" active-text="手动跳略时长"></el-switch>
         </span>
         <span class="timespan" v-if="moviesInfo.showTimespanSetting">
@@ -111,16 +109,16 @@
             </div>
             <li v-if="moviesInfo.exportablePlaylist" @click="exportM3u8">导出</li>
             <li v-if="moviesInfo.moviesList.length === 0">无数据</li>
-            <li @click="listItemEvent(j)" :class="movieInfo.index === j ? 'active' : ''" v-for="(i, j) in moviesInfo.moviesList" :key="j">
+            <li @click="listItemEvent(j)" :class="playInfo.movie.index === j ? 'active' : ''" v-for="(i, j) in moviesInfo.moviesList" :key="j">
               {{ftName(i)}}
             </li>
           </ul>
           <ul v-if="playerInfo.right.type === 'history'" class="list-history"  v-ClickOutside="closeListEvent">
             <li v-if="historyList.length > 0" @click="clearAllHistory">清空</li>
             <li v-if="historyList.length === 0">无数据</li>
-            <li @click="historyItemEvent(m)" :class="movieInfo.ids === m.ids ? 'active' : ''" v-for="(m, n) in historyList" :key="n">
-              <span class="title" :title="'【' + getSiteByKey(m.siteKey) + '】' + m.name + ' 第' + (m.index+1) + '集'">
-                【{{getSiteByKey(m.siteKey)}}】{{m.name}} 第{{m.index+1}}集
+            <li @click="historyItemEvent(m)" :class="playInfo.movie.ids === m.ids ? 'active' : ''" v-for="(m, n) in historyList" :key="n">
+              <span class="title" :title="'【' + getSiteNameByKey(m.siteKey) + '】' + m.name + ' 第' + (m.index+1) + '集'">
+                【{{getSiteNameByKey(m.siteKey)}}】{{m.name}} 第{{m.index+1}}集
               </span>
               <span @click.stop="removeHistoryItem(m)" class="detail-delete">删除</span>
             </li>
@@ -135,8 +133,8 @@
             </li>
           </ul>
           <ul v-if="playerInfo.right.type === 'sources'" class="list-channels" v-ClickOutside="closeListEvent">
-            <li v-if="getSourcePlayList.length === 0">当前频道已关闭</li>
-            <li v-for="(channel, index) in getSourcePlayList" :key="index">
+            <li v-if="sourcePlayList.length === 0">当前频道已关闭</li>
+            <li v-for="(channel, index) in sourcePlayList" :key="index">
               <span @click="playChannel(channel)" class="title">{{ channel.id === channelId ? channel.name + '[当前]' : channel.name }}</span>
               <span @click="disableChannel(channel)" class="btn" title="关闭频道">隐藏</span>
             </li>
@@ -180,7 +178,7 @@
 import { defineComponent, reactive, ref, onMounted, onBeforeMount, onBeforeUnmount, watch, toRefs } from 'vue';
 import { useCoreStore } from "@/store";
 import { useIptvStore } from "@/store/iptv";
-import { useMoviesStore } from "@/store/movies";
+import { useMovieStore } from "@/store/movie";
 import { useHistoryStore } from "@/store/history";
 import moviesApi from '@/api/movies';
 import { ElMessage, ClickOutside } from 'element-plus';
@@ -190,12 +188,10 @@ import { _ as lodash } from 'lodash';
 import { storeToRefs } from 'pinia';
 import { MoviesPlayer, getPlayerType, getIsVipMovies } from '@/business/play';
 import { invoke } from '@tauri-apps/api/tauri';
-import { writeText } from '@tauri-apps/api/clipboard';
 import { appWindow } from '@tauri-apps/api/window';
 import date from '@/util/date';
 import SvgIcon from '@/components/SvgIcon.vue';
 
-const VIDEO_DETAIL_CACHE = {}
 export default defineComponent({
   name: 'Play',
   components: {
@@ -234,36 +230,39 @@ export default defineComponent({
       currentMoviesFullList: [],
       moviesFullListIndex: 0,
       iframeFullScreen: false,
-      manualClosePlayer: false,
+      manualClosePlayer: true,
     });
 
     let player = null;
     const coreStore = useCoreStore();
-    const { getPlayerConf, updatePlayerConf, getAllShortcut, updateSystemConf } = coreStore;
-    const { view, video, iptv, playerConf, shortcutList, systemConf } = storeToRefs(coreStore);
+    const { getPlayerConf, updatePlayerConf, getAllShortcut, updateSystemConf, resetPlayInfo } = coreStore;
+    const { view, playMovieUq, playInfo, playMovieParams, playerConf, shortcutList, systemConf } = storeToRefs(coreStore);
 
     const iptvStore = useIptvStore();
-    const { getAllChannelGroup, getCurrentChannel } = iptvStore;
-    const { channelGroupId, channelGroupList, channelGroupTree, getSourcePlayList, channelId } = storeToRefs(iptvStore);
+    const { getAllChannelGroup } = iptvStore;
+    const { currentChannel, channelGroupList, channelGroupTree, sourcePlayList, channelId } = storeToRefs(iptvStore);
 
-    const moviesStore = useMoviesStore();
-    const { getSiteByKey, getAllSite } = moviesStore;
-    const { moviesDetailCache, movieInfo, siteList, detail } = storeToRefs(moviesStore);
+    const movieStore = useMovieStore();
+    const { getSiteByKey, getSiteNameByKey, getAllSite, fetchPlaylist } = movieStore;
+    const { movieDetailCache, siteList, detail, videoDetailCache } = storeToRefs(movieStore);
 
     const historyStore = useHistoryStore();
-    const { refreshHistoryList, getAllHistory } = historyStore;
-    const { historyList } = toRefs(historyStore);
+    const { refreshHistoryList, getAllHistory, refreshCurrentHistory } = historyStore;
+    const { historyList, currentHistory } = toRefs(historyStore);
 
     const historyTimer = ref();
-    
     const channelTreeRef = ref();
     
     const getPlayer = (videoUrl, force = false) => {
       const playerType = getPlayerType(videoUrl);
+      const showPalyPrevAndNext = moviesInfo.moviesList.length > 1;
       if (force || !player || (!player.dp || playerType !== player.playerType)) {
         closePlayer();
-        player = new MoviesPlayer(playerType, playerInfo, playerConf.value);
+        player = new MoviesPlayer(playerType, playerInfo, playerConf.value, showPalyPrevAndNext);
         bindEvent();
+      } else {
+        player.dpConfig.highlight = [];
+        player.dp.palyPrevAndNext(showPalyPrevAndNext)
       }
     }
 
@@ -283,8 +282,8 @@ export default defineComponent({
       }
 
       iptvInfo.changingIPTV = true // 避免二次执行playChannel
-      channelGroupId.value = channel.channelGroupId;
-      movieInfo.value.name = channelGroup.name
+      playInfo.value.iptv.channelGroupId = channel.channelGroupId;
+      playInfo.value.name = channelGroup.name
       getPlayer(channel.url);
       player.dp.switchVideo({url: channel.url, type: player.dpConfig.video.type})
       iptvInfo.changingIPTV = false
@@ -299,42 +298,44 @@ export default defineComponent({
     const getUrls = async () => {
       playerInfo.isPlaying = true;
       if (!player || !player.dp) getPlayer()
-      movieInfo.value.name = ''
-      movieInfo.value.onlineUrl = ''
+      playInfo.value.movie.name = ''
+      playInfo.value.movie.onlineUrl = ''
       if (historyTimer.value) {
         clearInterval(historyTimer.value)
         historyTimer.value = null
       }
 
-      if (video.value.playType === 'iptv') {
+      if (playInfo.value.playType === 'iptv') {
         // 是直播源，直接播放
-        playChannel(getCurrentChannel())
+        playChannel(currentChannel.value)
       } else {
         iptvInfo.showChannelGroupList = false
-        const key = getMoviesUq();
-        let time = movieInfo.value.time
+        const key = playMovieUq.value;
+        let time = playInfo.value.movie.time
         moviesInfo.startPosition = { min: '00', sec: '00' }
         moviesInfo.endPosition = { min: '00', sec: '00' }
-        let historyStr = await invoke("get_history_by_uq", getMoviesUq(2))
-        if (historyStr) {
-          const history = JSON.parse(historyStr);
-          if (!time && history.index === movieInfo.value.index) {
-            time = history.playTime
+        if (currentHistory.value) {
+          if (!time && currentHistory.value.index === playInfo.value.movie.index) {
+            time = currentHistory.value.playTime
           }
           
-          if (!movieInfo.value.index) movieInfo.value.index = history.index;
-          if (!VIDEO_DETAIL_CACHE[key]) VIDEO_DETAIL_CACHE[key] = {}
-          if (!movieInfo.value.videoFlag) movieInfo.value.videoFlag = history.videoFlag
-          if (history.startPosition) { // 数据库保存的时长通过快捷键设置时可能为小数, this.startPosition为object对应输入框分秒转化到数据库后肯定为整数
-            VIDEO_DETAIL_CACHE[key].startPosition = history.startPosition
-            moviesInfo.startPosition = { min: '' + parseInt(history.startPosition / 60), sec: '' + parseInt(history.startPosition % 60) }
+          if (!playInfo.value.movie.index) playInfo.value.movie.index = currentHistory.value.index;
+          if (!videoDetailCache.value[key]) videoDetailCache.value[key] = {}
+          if (!playInfo.value.movie.videoFlag) playInfo.value.movie.videoFlag = currentHistory.value.videoFlag
+          if (currentHistory.value.startPosition) { // 数据库保存的时长通过快捷键设置时可能为小数, this.startPosition为object对应输入框分秒转化到数据库后肯定为整数
+            videoDetailCache.value[key].startPosition = currentHistory.value.startPosition
+            moviesInfo.startPosition = { 
+              min: '' + parseInt(currentHistory.value.startPosition / 60), 
+              sec: '' + parseInt(currentHistory.value.startPosition % 60) 
+            }
           }
-          if (history.endPosition) {
-            VIDEO_DETAIL_CACHE[key].endPosition = history.endPosition
-            moviesInfo.endPosition = { min: '' + parseInt(history.endPosition / 60), sec: '' + parseInt(history.endPosition % 60) }
+          if (currentHistory.value.endPosition) {
+            videoDetailCache.value[key].endPosition = currentHistory.value.endPosition
+            moviesInfo.endPosition = { min: '' + parseInt(currentHistory.value.endPosition / 60), 
+            sec: '' + parseInt(currentHistory.value.endPosition % 60) }
           }
         }
-        const index = movieInfo.value.index || 0
+        const index = playInfo.value.movie.index || 0
         playVideo(index, time)
       }
     }
@@ -342,12 +343,10 @@ export default defineComponent({
     const moviesFullListChange = async (index) => {
       moviesInfo.moviesList = moviesInfo.currentMoviesFullList[index].list;
       moviesInfo.moviesFullListIndex = index;
-      let historyStr = await invoke("get_history_by_uq", getMoviesUq(2))
-      if (historyStr) {
-        let history = JSON.parse(historyStr);
-        history.videoFlag = moviesInfo.currentMoviesFullList[index].flag;
-        history.updateTime = date.getDateTimeStr(); 
-        await invoke("save_history", { history: history })
+      if (currentHistory.value) {
+        currentHistory.value.videoFlag = moviesInfo.currentMoviesFullList[index].flag;
+        currentHistory.value.updateTime = date.getDateTimeStr(); 
+        await invoke("save_history", { history: currentHistory.value })
         refreshHistoryList();
       }
     }
@@ -356,11 +355,11 @@ export default defineComponent({
       playerInfo.isLive = false
       moviesInfo.isStar = false
       moviesInfo.exportablePlaylist = false
-      fetchPlaylist().then(async (fullList) => {
+      fetchPlaylist(playMovieUq.value).then(async (fullList) => {
         moviesInfo.currentMoviesFullList = fullList;
         let playlist = fullList[0].list // ZY支持的已移到首位
         // 如果设定了特定的video flag, 获取该flag下的视频列表
-        const videoFlag = movieInfo.value.videoFlag
+        const videoFlag = playInfo.value.movie.videoFlag
         if (videoFlag) {
           fullList.forEach((x, index) => {
             if (x.flag == videoFlag) {
@@ -376,30 +375,32 @@ export default defineComponent({
           if (getIsVipMovies(url)) {
             const websiteParseList = await invoke("select_website_parse", {})
             ElMessage.info('即将调用解析接口播放，请等待...');
-            movieInfo.value.onlineUrl = websiteParseList[0].websiteParseUrl + url;
+            playInfo.value.movie.onlineUrl = websiteParseList[0].websiteParseUrl + url;
           } else {
-            movieInfo.value.onlineUrl = url;
+            playInfo.value.movie.onlineUrl = url;
           }
           player.destroy();
+          playInfo.value.movie.playMode = "online";
           videoPlaying('online');
           return
         } else {
-          const key = getMoviesUq();
-          getPlayer(url, true)
+          playInfo.value.movie.playMode = "local";
+          const key = playMovieUq.value;
+          getPlayer(url)
           player.dp.switchVideo({url: url, type: player.dpConfig.video.type})
-          const startTime = VIDEO_DETAIL_CACHE[key].startPosition || 0
+          const startTime = videoDetailCache.value[key].startPosition || 0
           player.dp.seek(time > startTime ? time : startTime)
         }
-        if (document.querySelector('xg-btn-showhistory')) document.querySelector('xg-btn-showhistory').style.display = 'block'
-        if (document.querySelector('.xgplayer-playbackrate')) document.querySelector('.xgplayer-playbackrate').style.display = 'inline-block'
         videoPlaying()
         playerInfo.skipendStatus = false
+      }).catch(() => {
+        ElMessage.error('播放地址可能已失效，请换源并调整收藏');
+        otherEvent();
       })
     }
 
     const videoPlaying = async (isOnline) => {
-      let historyStr = await invoke("get_history_by_uq", getMoviesUq(2))
-      const videoFlag = movieInfo.value.videoFlag || ''
+      const videoFlag = playInfo.value.movie.videoFlag || ''
       let time, duration;
       let startPosition = 0
       let endPosition = 0
@@ -409,24 +410,25 @@ export default defineComponent({
         time = player.currentTime();
         duration = player.duration();
       }
-      if (!historyStr) {
+      if (!currentHistory.value) {
         const history = {
           id: 0,
-          name: movieInfo.value.name,
-          siteKey: movieInfo.value.siteKey,
-          ids: movieInfo.value.ids.toString(),
-          index: movieInfo.value.index,
+          name: playInfo.value.name,
+          siteKey: playInfo.value.movie.siteKey,
+          ids: playInfo.value.movie.ids.toString(),
+          index: playInfo.value.movie.index,
           playTime: time,
           duration: duration,
           startPosition: startPosition,
           endPosition: endPosition,
-          detail: JSON.stringify(moviesDetailCache.value[getMoviesUq()]),
-          onlinePlay: isOnline ? movieInfo.value.onlineUrl : "",
+          detail: JSON.stringify(movieDetailCache.value[playMovieUq.value]),
+          onlinePlay: isOnline ? playInfo.value.movie.onlineUrl : "",
           videoFlag: videoFlag,
           hasUpdate: "0",
           updateTime: date.getDateTimeStr(),
         }
         await invoke("save_history", {history: history})
+        refreshCurrentHistory();
       }
       if (isOnline) {
         const iframeElement = document.querySelector('iframe'); // 获取iframe元素
@@ -439,56 +441,20 @@ export default defineComponent({
           }
           moviesInfo.iframeFullScreen = !moviesInfo.iframeFullScreen
         });
-        let history = JSON.parse(historyStr);
-        history.index = movieInfo.value.index;
-        history.onlinePlay = movieInfo.value.onlineUrl;
-        history.updateTime = date.getDateTimeStr(); 
-        await invoke("save_history", {history: history});
-        refreshHistoryList();
+        currentHistory.value.index = playInfo.value.movie.index;
+        currentHistory.value.onlinePlay = playInfo.value.movie.onlineUrl;
+        currentHistory.value.updateTime = date.getDateTimeStr(); 
+        await invoke("save_history", {history: currentHistory.value});
       } else {
         timerEvent();
       }
-    }
-    
-    const fetchPlaylist = () => {
-      return new Promise((resolve) => {
-        const cacheKey = getMoviesUq()
-        if (VIDEO_DETAIL_CACHE[cacheKey] && VIDEO_DETAIL_CACHE[cacheKey].list && VIDEO_DETAIL_CACHE[cacheKey].list.length) {
-          movieInfo.value.name = VIDEO_DETAIL_CACHE[cacheKey].name
-          resolve(VIDEO_DETAIL_CACHE[cacheKey].list)
-        }
-        let res
-        if (!moviesDetailCache.value[cacheKey]) {
-          moviesApi.detail(getSiteByKey(movieInfo.value.siteKey, 2), movieInfo.value.ids).then(res => {
-            moviesDetailCache.value[cacheKey] = res
-            res = moviesDetailCache.value[cacheKey]
-            movieInfo.value.name = res.name
-            VIDEO_DETAIL_CACHE[cacheKey] = Object.assign(VIDEO_DETAIL_CACHE[cacheKey] || { }, {
-              list: res.fullList,
-              name: res.name
-            })
-            resolve(res.fullList)
-          }).catch(err => { 
-            ElMessage({showClose: true, message: '播放地址可能已失效，请换源并调整收藏', type: 'error',});
-            movieInfo.value.name = movieInfo.value.name; 
-            otherEvent();
-          })
-        } else {
-          res = moviesDetailCache.value[cacheKey]
-          movieInfo.value.name = res.name
-          VIDEO_DETAIL_CACHE[cacheKey] = Object.assign(VIDEO_DETAIL_CACHE[cacheKey] || { }, {
-            list: res.fullList,
-            name: res.name
-          })
-          resolve(res.fullList)
-        }
-      })
+      refreshHistoryList();
     }
 
     // 播放下一集
     const prevNextEvent = (isReverse = false) => {
-      if (video.value.playType === "iptv") {
-        let index = lodash.findIndex(channelGroupList.value, ['id', channelGroupId.value]);
+      if (playInfo.value.playType === "iptv") {
+        let index = lodash.findIndex(channelGroupList.value, ['id', playInfo.value.iptv.channelGroupId]);
         if (isReverse) {
           index = index === 0 ? channelGroupList.value.length - 1 : index - 1
         } else {
@@ -498,17 +464,17 @@ export default defineComponent({
         playChannel(channel)
       } else {
         if (isReverse) {
-          if (movieInfo.value.index >= 1) {
-            movieInfo.value.index--
-            movieInfo.value.time = 0
+          if (playInfo.value.movie.index >= 1) {
+            playInfo.value.movie.index--
+            playInfo.value.movie.time = 0
           } else {
-            ElMessage({showClose: true, message: '这已经是第一集了。', type: 'warning',})
+            ElMessage.warning('这已经是第一集了。')
           }
-        } else if (movieInfo.value.index < (moviesInfo.moviesList.length - 1)) {
-          movieInfo.value.index++
-          movieInfo.value.time = 0
+        } else if (playInfo.value.movie.index < (moviesInfo.moviesList.length - 1)) {
+          playInfo.value.movie.index++
+          playInfo.value.movie.time = 0
         } else {
-          ElMessage({showClose: true, message: '这已经是最后一集了。', type: 'warning',})
+          ElMessage.warning('这已经是最后一集了。')
         }
       }
     }
@@ -519,14 +485,12 @@ export default defineComponent({
         if (!player.playing) {
           return
         }
-        let historyStr = await invoke("get_history_by_uq", getMoviesUq(2))
-        if (historyStr) {
-          let history = JSON.parse(historyStr);
-          history.index = movieInfo.value.index;
-          history.playTime = player.currentTime();
-          history.duration = player.duration();
-          history.updateTime = date.getDateTimeStr(); 
-          await invoke("save_history", { history: history })
+        if (currentHistory.value) {
+          currentHistory.value.index = playInfo.value.movie.index;
+          currentHistory.value.playTime = player.currentTime();
+          currentHistory.value.duration = player.duration();
+          currentHistory.value.updateTime = date.getDateTimeStr();
+          await invoke("save_history", { history: currentHistory.value })
         }
       }, 10000)
     }
@@ -543,13 +507,7 @@ export default defineComponent({
     const closePlayerAndInit = () => {
       playerInfo.isPlaying = false;
       moviesInfo.manualClosePlayer = true;
-      movieInfo.value = {
-        siteKey: "",
-        ids: "",
-        name: "",
-        index: 0,
-        onlineUrl: "",
-      }
+      resetPlayInfo();
       moviesInfo.moviesList = [];
       if (player && player.dp) {
         player.dp.destroy();
@@ -591,16 +549,16 @@ export default defineComponent({
         clearTimeout(stallIptvTimeout)
       })
 
-      dp.on('volumechange', async () => {
+      dp.on('volumechange', lodash.debounce(async () => {
         playerConf.value.volume = player.dp.video.volume;
         updatePlayerConf();
-      })
+      }, 500))
 
       dp.on('timeupdate', () => {
         if (dpConfig.isLive) return
-        const key = getMoviesUq();
-        if (VIDEO_DETAIL_CACHE[key] && VIDEO_DETAIL_CACHE[key].endPosition) {
-          const time = dp.video.duration - VIDEO_DETAIL_CACHE[key].endPosition - dp.video.currentTime
+        const key = playMovieUq.value;
+        if (videoDetailCache.value[key] && videoDetailCache.value[key].endPosition) {
+          const time = dp.video.duration - videoDetailCache.value[key].endPosition - dp.video.currentTime
           if (time > 0 && time < 0.3) { // timeupdate每0.25秒触发一次，只有自然播放到该点时才会跳过片尾
             if (!playerInfo.skipendStatus) {
               playerInfo.skipendStatus = true
@@ -613,36 +571,34 @@ export default defineComponent({
 
       dp.on('play', () => {
         clearTimeout(stallIptvTimeout)
-        if (!movieInfo.value.siteKey && !channelGroupId.value) {
-          if (video.value.playType !== "iptv" && !movieInfo.value.ids) {
+        if (!playInfo.value.movie.siteKey && !playInfo.value.iptv.channelGroupId) {
+          if (playInfo.value.playType == "movie" && !playInfo.value.movie.ids) {
             // 如果当前播放页面的播放信息没有被赋值,播放历史记录
             if (historyList.value.length === 0) {
-              ElMessage({showClose: true, message: '历史记录为空，无法播放！', type: 'warning',})
+              ElMessage.warning('历史记录为空，无法播放！')
               return
             }
             const historyItem = historyList.value[0]
-            video.value = { isLive: false, playType: "movies"}
-            movieInfo.value = {
-              siteKey: historyItem.siteKey,
-              ids: historyItem.ids, 
-              name: historyItem.name,
-              index: historyItem.index,
-            }
-          } else if (video.value.playType === "iptv") {
-            playChannel(getCurrentChannel())
+            playInfo.value.isLive = false;
+            playInfo.value.movie.siteKey = historyItem.siteKey;
+            playInfo.value.movie.ids = historyItem.ids;
+            playInfo.value.name = historyItem.name;
+            playInfo.value.movie.index = historyItem.index;
+          } else if (playInfo.value.playType === "iptv") {
+            playChannel(currentChannel.value)
             iptvInfo.showChannelGroupList = false
           }
         }
       })
 
       dp.on('playing', lodash.once(() => {
-        if (movieInfo.value.siteKey) {
-          const key = getMoviesUq();
+        if (playInfo.value.movie.siteKey) {
+          const key = playMovieUq.value;
           dpConfig.highlight = [{
-            time: VIDEO_DETAIL_CACHE[key]["startPosition"],
+            time: videoDetailCache.value[key]["startPosition"],
             text: '片头',
           }, {
-            time: dp.video.duration - VIDEO_DETAIL_CACHE[key]["endPosition"],
+            time: dp.video.duration - videoDetailCache.value[key]["endPosition"],
             text: '片尾',
           }]
           player.durationchange();
@@ -650,33 +606,11 @@ export default defineComponent({
       }))
 
       dp.on('ended', lodash.debounce(() => {
-        if (moviesInfo.moviesList.length > 1 && (moviesInfo.moviesList.length - 1 > movieInfo.value.index)) {
-          movieInfo.value.time = 0
-          movieInfo.value.index++
+        if (moviesInfo.moviesList.length > 1 && (moviesInfo.moviesList.length - 1 > playInfo.value.movie.index)) {
+          playInfo.value.movie.time = 0
+          playInfo.value.movie.index++
         }
       }, 1000))
-
-      dp.on('durationchange', () => {
-        if (dp.video.duration !== 1 && dp.video.duration !== Infinity) {
-          let highlight = dpConfig.highlight
-          let playedBarWrap = dp.container.querySelector('.dplayer-bar-wrap');
-          let playedBarTime = dp.container.querySelector('.dplayer-bar-time');
-          const highlights = playedBarWrap.querySelectorAll('.dplayer-highlight');
-          [].slice.call(highlights, 0).forEach((item) => {
-            playedBarWrap.removeChild(item);
-          });
-          for (let i = 0; i < highlight.length; i++) {
-            if (!highlight[i].text || !highlight[i].time) {
-                continue;
-            }
-            const p = document.createElement('div');
-            p.classList.add('dplayer-highlight');
-            p.style.left = (highlight[i].time / dp.video.duration) * 100 + '%';
-            p.innerHTML = '<span class="dplayer-highlight-text">' + highlight[i].text + '</span>';
-            playedBarWrap.insertBefore(p, playedBarTime);
-          }
-        }
-      });
 
       dp.on('playPrev', () => {
         prevNextEvent(true);
@@ -697,7 +631,7 @@ export default defineComponent({
     }
     
     const otherEvent = () => {
-      if (video.value.playType != 'iptv') {
+      if (playInfo.value.playType != 'iptv') {
         playerInfo.right.type = 'other'
         getOtherSites()
         moviesInfo.currentTime = player.dp ? player.dp.video.currentTime : 0
@@ -709,11 +643,11 @@ export default defineComponent({
 
     const getOtherSites = async () => {
       moviesInfo.otherSiteMoviesSources = []
-      const currentSite = getSiteByKey(movieInfo.value.siteKey, 2);
+      const currentSite = getSiteByKey(playInfo.value.movie.siteKey);
       await getAllSite();
       // 排除已关闭的源和当前源
-      for (const siteItem of siteList.value.filter(x => x.isActive && x.group === currentSite.group && x.key !== movieInfo.value.siteKey)) {
-        moviesApi.search(siteItem, movieInfo.value.name).then(searchRes => {
+      for (const siteItem of siteList.value.filter(x => x.isActive && x.group === currentSite.group && x.key !== playInfo.value.movie.siteKey)) {
+        moviesApi.search(siteItem, playInfo.value.movie.name).then(searchRes => {
           const type = Object.prototype.toString.call(searchRes)
           if (type === '[object Array]') {
             searchRes.forEach(async item => {
@@ -780,42 +714,19 @@ export default defineComponent({
       }
       refreshHistoryList()
     }
-    
-    const issueEvent = async () => {
-      const currentSite = getSiteByKey(2);
-      const playInfo = {
-        movies: Object.assign({ siteInfo: currentSite, moviesDetail: moviesDetailCache[getMoviesUq()] }, movieInfo.value),
-        playlist: moviesInfo.moviesList.map(e => e.split('$')[1]),
-        playerType: moviesInfo.onlineUrl ? '在线解析' : player.dp.video.type,
-        playerError: player.dp.error || '',
-        playerState: player.dp.readyState || '',
-        networkState: player.dp.networkState || ''
-      }
-      
-      await writeText(JSON.stringify(playInfo, null, 4));
-      ElMessage({showClose: true, message: '视频信息复制成功', type: 'success',});
-    }
-
-    const getMoviesUq = (type = 1) => {
-      if (type == 1) {
-        return movieInfo.value.siteKey + '@' + movieInfo.value.ids;
-      } else {
-        return { siteKey: movieInfo.value.siteKey, ids: movieInfo.value.ids.toString() }
-      }
-    }
 
     const starEvent = async () => {
-      const statStr = await invoke("get_star_by_uq", getMoviesUq(type = 2));
+      const statStr = await invoke("get_star_by_uq", playMovieParams.value);
       if (statStr) {
         await invoke("del_star", JSON.parse(statStr).id);
         moviesInfo.isStar = false;
         ElMessage({showClose: true, message: '取消收藏成功', type: 'success',});
       } else {
         const star = {
-          name: movieInfo.value.name,
-          ids: movieInfo.value.ids.toString(),
-          siteKey: movieInfo.value.siteKey,
-          detail: JSON.stringify(moviesDetailCache.value[getMoviesUq()]),
+          name: playInfo.value.name,
+          ids: playInfo.value.movie.ids.toString(),
+          siteKey: playInfo.value.movie.siteKey,
+          detail: JSON.stringify(movieDetailCache.value[playMovieUq.value]),
         }
         await invoke("save_star", {star: star});
         ElMessage({showClose: true, message: '收藏成功', type: 'success',});
@@ -824,12 +735,10 @@ export default defineComponent({
     }
     
     const historyItemEvent = (history) => {
-      movieInfo.value = {
-        siteKey: history.siteKey,
-        ids: history.ids,
-        name: history.name,
-        index: history.index
-      }
+      playInfo.value.movie.siteKey = history.siteKey;
+      playInfo.value.movie.ids = history.ids;
+      playInfo.value.name = history.name;
+      playInfo.value.movie.index = history.index;
       playerInfo.right.show = false
       playerInfo.right.type = ''
     }
@@ -843,38 +752,37 @@ export default defineComponent({
         return
       }
 
-      const key = getMoviesUq();
-      let historyStr = await invoke("get_history_by_uq", getMoviesUq(2))
+      const key = playMovieUq.value;
       player.dpConfig.highlight = []
-      const history = JSON.parse(historyStr);
       if (startTime != 0) {
-        VIDEO_DETAIL_CACHE[key]["startPosition"] = startTime
-        history["startPosition"] = startTime
-        player.dpConfig.highlight.push({time: startTime, text: '片头',})
+        videoDetailCache.value[key]["startPosition"] = startTime
+        currentHistory.value["startPosition"] = startTime
+        player.setHighlightByName(startTime, '片头');
       }
 
       if (endTime != 0 ) {
-        VIDEO_DETAIL_CACHE[key]["endPosition"] = endTime;
-        history["endPosition"] = endTime
-        player.dpConfig.highlight.push({time: videoDuration - endTime, text: '片尾',})
+        videoDetailCache.value[key]["endPosition"] = endTime;
+        currentHistory.value["endPosition"] = endTime
+        const time = videoDuration - endTime;
+        player.setHighlightByName(time, '片尾');
       }
       
       if (startTime != 0 || endTime != 0) {
         player.durationchange();
-        history.updateTime = date.getDateTimeStr(); 
-        await invoke("save_history", { history: history} );
+        currentHistory.value.updateTime = date.getDateTimeStr(); 
+        await invoke("save_history", { history: currentHistory.value } );
         refreshHistoryList();
       }
     }
     
     const listItemEvent = (n) => {
-      if (video.value.playType == "iptv") {
+      if (playInfo.value.playType == "iptv") {
         const channel = channelGroupList.value[n]
         // 是直播源，直接播放
         playChannel(channel)
       } else {
-        movieInfo.value.index = n
-        movieInfo.value.videoFlag = moviesInfo.currentMoviesFullList[moviesInfo.moviesFullListIndex].flag;
+        playInfo.value.movie.index = n
+        playInfo.value.movie.videoFlag = moviesInfo.currentMoviesFullList[moviesInfo.moviesFullListIndex].flag;
         playerInfo.right.show = false
         playerInfo.right.type = ''
       }
@@ -883,9 +791,10 @@ export default defineComponent({
     const detailEvent = () => {
       detail.value = {
         show: true,
-        siteKey: movieInfo.value.siteKey,
-        ids: movieInfo.value.ids,
-        index: movieInfo.value.index,
+        siteKey: playInfo.value.movie.siteKey,
+        ids: playInfo.value.movie.ids,
+        index: playInfo.value.movie
+        .index,
       }
     }
     
@@ -904,14 +813,16 @@ export default defineComponent({
     }
 
     const otherItemEvent = (e) => {
-      video.value.playType = "movies";
+      playInfo.value.playType = "movies";
       // 打开当前播放的剧集index, 定位到当前的时间
-      movieInfo.value = {
+      playInfo.value.movie = {
         siteKey: e.site.key,
         ids: e.id,
-        index: movieInfo.value.index,
+        index: playInfo.value.movie.index,
         name: e.name,
         videoFlag: "",
+        onlineUrl: "",
+        playMode: "local",
       }
     }
     
@@ -971,7 +882,7 @@ export default defineComponent({
       const downloadElement = document.createElement('a')
       const href = window.URL.createObjectURL(blob)
       downloadElement.href = href
-      downloadElement.download = `${movieInfo.value.name}.m3u`
+      downloadElement.download = `${playInfo.value.name}.m3u`
       document.body.appendChild(downloadElement)
       downloadElement.click()
       document.body.removeChild(downloadElement)
@@ -1015,20 +926,20 @@ export default defineComponent({
         case 'volumeUp':
           if (player.playerExist()) {
             let volume = player.dp.video.volume + 0.1 > 1 ? 1 : player.dp.video.volume + 0.1;
-            player.dp.volume(volume, true, false);
+            player.dp.volume(volume, false, false);
           }
           break
         case 'volumeDown':
           if (player.playerExist()) {
             let volume = player.dp.video.volume - 0.1 < 0 ? 0 : player.dp.video.volume - 0.1;
-            player.dp.volume(volume, true, false)
+            player.dp.volume(volume, false, false)
           }
           break
         case 'next':
-          nextEvent()
+          prevNextEvent()
           break
         case 'prev':
-          prevEvent()
+          prevNextEvent(true)
           break
         case 'playbackRateUp':
           if (player.videoExist() && !player.dp.video.paused) {
@@ -1069,14 +980,17 @@ export default defineComponent({
     }
     
     watch(() => {
-      if (video.value.playType == "movies") return movieInfo.value.siteKey + '@' + movieInfo.value.ids + '@' + movieInfo.value.index
-      if (video.value.playType == "iptv") return channelGroupId.value;
+      if (playInfo.value.playType == "movie") return playInfo.value.movie.siteKey + '@' + playInfo.value.movie.ids + '@' + playInfo.value.movie.index
+      if (playInfo.value.playType == "iptv") return playInfo.value.channelGroupId;
     }, () => {
       if (playerInfo.changingIPTV) return
       // 手动关闭播放器，直接返回
       if (moviesInfo.manualClosePlayer) {
         moviesInfo.manualClosePlayer = false;
         return
+      }
+      if (playInfo.value.playType == "movie") {
+        refreshCurrentHistory();
       }
       getUrls();
     }, { deep: true })
@@ -1086,6 +1000,7 @@ export default defineComponent({
       if (view.value === 'Play') {
         playerInfo.right.show = false
         playerInfo.right.type = ''
+        refreshHistoryList();
         getAllChannelGroup()
         if (playerInfo.playType == "") {
           iptvInfo.showChannelGroupList = true
@@ -1094,19 +1009,18 @@ export default defineComponent({
     }, { deep: true })
 
     onBeforeMount(async () => {
+      resetPlayInfo();
       getPlayerConf();
       await getAllShortcut();
       mtEvent()
-      await getAllHistory();
+      getAllHistory();
     })
 
     onMounted(async () => {
-      if (video.value.playType) {
-        if (video.value.playType == "iptv") {  
+      if (playInfo.value.playType) {
+        if (playInfo.value.playType == "iptv") {  
           iptvInfo.showChannelGroupList = true
         }
-        getUrls();
-      } else {
         getPlayer("", true)
       }
     });
@@ -1121,24 +1035,21 @@ export default defineComponent({
     return {
       playerInfo,
       iptvInfo,
-      iptv,
       moviesInfo,
-      movieInfo,
-      video,
+      playInfo,
       otherEvent,
       closeListEvent,
       showShortcutEvent,
       moviesListEvent,
       historyEvent,
       handleNodeClick,
-      issueEvent,
       starEvent,
       historyList,
       historyItemEvent,
       setProgressDotByInput,
       listItemEvent,
       ftName,
-      getSiteByKey,
+      getSiteNameByKey,
       detailEvent,
       clearAllHistory,
       channelGroupTree,
@@ -1151,7 +1062,7 @@ export default defineComponent({
       filterNode,
       exportM3u8,
       searchTxtChange,
-      getSourcePlayList,
+      sourcePlayList,
       channelId,
       shortcutList,
       fmtMSS,

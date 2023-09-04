@@ -77,7 +77,7 @@
             width="120"
             label="源站">
             <template #default="scope">
-              <span>{{ getSiteByKey(scope.row.siteKey) }}</span>
+              <span>{{ getSiteNameByKey(scope.row.siteKey) }}</span>
             </template>
           </el-table-column>
           <el-table-column
@@ -173,7 +173,7 @@
 import { defineComponent, reactive, ref, watch, onMounted, nextTick } from 'vue';
 import moviesApi from '@/api/movies';
 import { useCoreStore } from "@/store";
-import { useMoviesStore } from "@/store/movies";
+import { useMovieStore } from "@/store/movie";
 import { useStarStore } from "@/store/star";
 import { storeToRefs } from 'pinia';
 import { _ } from 'lodash';
@@ -200,9 +200,9 @@ export default defineComponent({
     const { updateSystemConf, showShiftPrompt } = coreStore;
     const { view, systemConf, shiftDown } = storeToRefs(coreStore);
 
-    const moviesStore = useMoviesStore();
-    const { getSiteByKey } = moviesStore;
-    const { movieInfo, detail } = storeToRefs(moviesStore);
+    const movieStore = useMovieStore();
+    const { getSiteNameByKey } = movieStore;
+    const { movieInfo, detail } = storeToRefs(movieStore);
 
     const starStore = useStarStore();
     const { refreshStarList } = starStore;
@@ -502,7 +502,7 @@ export default defineComponent({
       updateAllEvent,
       starTypes,
       starAreas,
-      getSiteByKey,
+      getSiteNameByKey,
       detailEvent,
       playEvent,
       deleteEvent,
