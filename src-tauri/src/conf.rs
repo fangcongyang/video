@@ -119,6 +119,7 @@ pub_struct!(AppConf {
   main_close: bool,
   main_dashboard: bool,
   ua_window: String,
+  titlebar: bool,
 
   playerConf: PlayerConf,
   historyConf: HistoryConf,
@@ -137,6 +138,7 @@ impl AppConf {
       main_dashboard: true,
       isInitDatabase: false,
       ua_window: "".into(),
+      titlebar: false,
       global_shortcut: None,
       moviesConf: MoviesConf::new(),
       playerConf: PlayerConf::new(),
