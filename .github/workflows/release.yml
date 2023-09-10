@@ -39,6 +39,26 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ''
         with:
           tagName: v__VERSION__
           releaseName: v__VERSION__
+  update:
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+  
+      - name: Install Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: 16
+  
+      - run: yarn
+  
+      - name: Create Update
+        run: yarn update
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

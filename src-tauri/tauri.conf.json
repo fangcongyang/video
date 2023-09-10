@@ -72,6 +72,16 @@
     "systemTray": {
       "iconPath": "icons/icon.png",
       "iconAsTemplate": true
+    },
+    "updater": {
+      "active": true,
+      "dialog": true,
+      "endpoints": ["https://github.com/fangcongyang/video/releases/download/updater/update.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEM0RDcwRkQ4QTAzMzdDRjYKUldUMmZET2cyQS9YeEhEaXMvZE9hcHA3emtHejhNakZWbzlITFhTN3k4N3pUc2V4MFJ1Vm9TYVMK",
+      "windows": {
+        "installMode": "passive",
+        "installerArgs": []
+      }
     }
   }
 }
