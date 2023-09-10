@@ -9,13 +9,14 @@ pub fn init(app: &mut App) -> std::result::Result<(), Box<dyn std::error::Error>
   let app_conf = AppConf::read();
   
   let app_handle: tauri::AppHandle = app.handle();
+  let app_conf2 = app_conf.clone();
   tauri::async_runtime::spawn(async move {
-    let mut main_win = WindowBuilder::new(&app_handle, "main", WindowUrl::App("index.html".into()))
+    let main_win = WindowBuilder::new(&app_handle, "main", WindowUrl::App("index.html".into()))
       .title("vop")
       .resizable(true)
       .fullscreen(false)
       .disable_file_drop_handler()
-      .inner_size(app_conf.systemConf.mainWidth, app_conf.systemConf.mainHeight)
+      .inner_size(app_conf2.systemConf.mainWidth, app_conf2.systemConf.mainHeight)
       .center()
       .decorations(false)
       .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.58".into());
@@ -23,13 +24,13 @@ pub fn init(app: &mut App) -> std::result::Result<(), Box<dyn std::error::Error>
     #[cfg(target_os = "macos")]
     {
       main_win = main_win
-        .title_bar_style(app_conf.clone().titlebar())
+        .title_bar_style(app_conf2.clone().titlebar())
         .hidden_title(true);
     }
 
     let main = main_win.build().unwrap();
 
-    if app_conf.systemConf.saveWindowState {
+    if app_conf2.systemConf.saveWindowState {
       main.restore_state(StateFlags::all()).expect("还原窗口失败");
     } else {
       #[cfg(any(windows, target_os = "macos"))]
@@ -39,7 +40,7 @@ pub fn init(app: &mut App) -> std::result::Result<(), Box<dyn std::error::Error>
   });
 
   // auto_update
-  let auto_update = app_conf.clone().get_auto_update();
+  let auto_update = app_conf.get_auto_update();
   if auto_update != "disable" {
     info!("run_check_update");
     // utils::run_check_update(app, auto_update == "silent", None);
