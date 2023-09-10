@@ -11,7 +11,7 @@ pub fn init(app: &mut App) -> std::result::Result<(), Box<dyn std::error::Error>
   let app_handle: tauri::AppHandle = app.handle();
   let app_conf2 = app_conf.clone();
   tauri::async_runtime::spawn(async move {
-    let main_win = WindowBuilder::new(&app_handle, "main", WindowUrl::App("index.html".into()))
+    let mut main_win = WindowBuilder::new(&app_handle, "main", WindowUrl::App("index.html".into()))
       .title("vop")
       .resizable(true)
       .fullscreen(false)
