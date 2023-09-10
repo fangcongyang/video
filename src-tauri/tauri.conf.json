@@ -44,7 +44,11 @@
         "certificateThumbprint": null,
         "digestAlgorithm": null,
         "nsis": {
-          "installMode": "both"
+          "displayLanguageSelector": true,
+          "installerIcon": "icons/icon.ico",
+          "license": "../LICENSE",
+          "installMode": "both",
+          "languages": ["SimpChinese", "TradChinese", "English"]
         },
         "timestampUrl": null,
         "tsp": false,
@@ -52,9 +56,6 @@
         "webviewInstallMode": {
           "silent": true,
           "type": "downloadBootstrapper"
-        },
-        "wix": {
-          "language": "zh-CN"
         }
       },
       "macOS": {

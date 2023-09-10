@@ -118,7 +118,7 @@ pub async fn download_file(id: i32) {
     }
 }
 
-pub async fn parse_media_list(url: Url, play_list: MediaPlaylist, mut download_info: &mut DownloadInfo) -> anyhow::Result<()> {
+pub async fn parse_media_list(url: Url, play_list: MediaPlaylist, download_info: &mut DownloadInfo) -> anyhow::Result<()> {
     let mut m3u8_encrypt_key = Arc::new(M3u8EncryptKey::default());
     let count = play_list.segments.len();
     download_info.count = count as i32;
