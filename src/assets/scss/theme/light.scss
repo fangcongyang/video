@@ -413,6 +413,20 @@
         border-bottom-color: var(--l-bgc-1);
       }
     }
+    .page-body{
+      color: var(--l-fc-1);
+      background-color: var(--l-bgc-1);
+      &:hover{
+        &::-webkit-scrollbar-thumb {
+          box-shadow: var(--l-bsc-scroll);
+          background: var(--l-c-5);
+        }
+        &::-webkit-scrollbar-track {
+          box-shadow: var(--l-bsc-scroll);
+          background: var(--l-bgc-1);
+        }
+      }
+    }
     .listpage-body{
       color: var(--l-fc-1);
       background-color: var(--l-bgc-1);

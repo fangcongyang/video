@@ -100,8 +100,10 @@ export class MoviesPlayer {
     }
 
     setHighlightByName(time, name) {
-        _.dropWhile(this.dpConfig.highlight, (o) => {return o.text == name})
-        this.dpConfig.highlight.push({time: time, text: name,})
+        this.dpConfig.highlight = _.dropWhile(this.dpConfig.highlight, (o) => {return o.text == name})
+        if (time) {
+            this.dpConfig.highlight.push({time: time, text: name,})
+        }
     }
 }
 

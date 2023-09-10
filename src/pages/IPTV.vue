@@ -1,85 +1,63 @@
 <template>
-  <div class="listpage" id="iptv">
-    <div
-      class="listpage-header"
-      id="iptv-header"
-      v-show="!iptvInfo.enableBatchEdit"
+  <div class="listpage" id="iptv" @contextmenu="onContextMenu($event)">
+    <context-menu
+      v-model:show="iptvInfo.contextMenushow"
+      :options="iptvInfo.options"
     >
-      <el-switch
-        v-model="iptvInfo.enableBatchEdit"
-        active-text="批处理及频道调整"
-      ></el-switch>
-      <el-button
-        :icon="Upload"
-        @click.stop="exportChannels"
-        title="导出m3u时必须手动添加扩展名，要保存频道配置信息请选择json格式"
-        >导出</el-button
-      >
-      <el-button
-        @click.stop="importChannels"
-        :icon="Download"
-        title='支持同时导入多个文件,导入m3u时网址可带参数、含有"#"号时自动分割'
-      >
-        导入
-      </el-button>
-      <el-button
-        @click="checkAllChannels"
-        :icon="Refresh"
-        :loading="iptvInfo.checkAllChannelsLoading"
-        title="可在后台运行"
-      >
-        检测{{
-          iptvInfo.checkAllChannelsLoading
-            ? iptvInfo.checkProgress + "/" + this.iptvList.length
-            : ""
-        }}
-      </el-button>
-      <el-button @click.stop="showIptvOnlineSearch" :icon="DataLine"
-        >在线搜索</el-button
-      >
-    </div>
-    <div
-      class="listpage-header"
-      id="iptv-header"
-      v-show="iptvInfo.enableBatchEdit"
-    >
-      <el-switch
-        v-model="iptvInfo.enableBatchEdit"
-        active-text="批处理及频道调整"
-      ></el-switch>
-      <el-input
-        style="width: 200Px;"
-        size="small"
-        placeholder="新组名/新频道名"
-        v-model="iptvInfo.inputContent"
-      ></el-input>
-      <el-switch
-        v-model="iptvInfo.batchIsActive"
-        active-text="启用"
-      ></el-switch>
-      <el-button
-        type="primary"
-        icon="el-icon-edit"
-        @click.stop="saveBatchEdit"
-        title="输入框组名为空时仅保存开关状态"
-        >保存分组与开关状态</el-button
-      >
-      <el-button
-        type="primary"
-        icon="el-icon-film"
-        @click.stop="mergeChannel"
-        title="勾选单个时可重命名频道"
-        >{{
-          iptvInfo.multipleSelection.length === 1 ? "频道重命名" : "频道合并"
-        }}</el-button
-      >
-      <el-button
-        @click.stop="removeSelectedChannels"
-        icon="el-icon-delete-solid"
-        >删除</el-button
-      >
-    </div>
-    <div class="listpage-body">
+      <context-menu-item label="批量启用" @click="() => {
+          iptvInfo.batchIsActive = '1';
+          saveBatchEdit();
+        }">
+        <template #icon>
+          <el-icon><Open /></el-icon>
+        </template>
+      </context-menu-item>
+      <context-menu-item label="批量禁用" @click="() => {
+          iptvInfo.batchIsActive = '0';
+          saveBatchEdit();
+        }">
+        <template #icon>
+          <el-icon><TurnOff /></el-icon>
+        </template>
+      </context-menu-item>
+      <context-menu-sperator />
+      <context-menu-item label="导出" @click="exportChannels()">
+        <template #icon>
+          <el-icon>
+            <Download />
+          </el-icon>
+        </template>
+      </context-menu-item>
+      <context-menu-item label="导入" @click="importChannels()">
+        <template #icon>
+          <el-icon>
+            <Upload />
+          </el-icon>
+        </template>
+      </context-menu-item>
+      <context-menu-item label="检测" @click="checkAllChannels()">
+        <template #icon>
+          <el-icon>
+            <Refresh />
+          </el-icon>
+        </template>
+      </context-menu-item>
+      <context-menu-item label="在线搜索" @click="showIptvOnlineSearch()">
+        <template #icon>
+          <el-icon>
+            <DataLine />
+          </el-icon>
+        </template>
+      </context-menu-item>
+      <context-menu-item label="删除" @click="removeSelectedChannels()">
+        <template #icon>
+          <el-icon>
+            <Delete />
+          </el-icon>
+        </template>
+      </context-menu-item>
+    </context-menu>
+    <div class="page-body">
       <div class="show-table" id="iptv-table">
         <el-table
           ref="iptvTableRef"
@@ -96,12 +74,11 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-          <el-table-column type="selection" v-if="iptvInfo.enableBatchEdit">
+          <el-table-column type="selection">
           </el-table-column>
           <el-table-column
             default-sort="ascending"
             prop="name"
-            :class-name="iptvInfo.enableBatchEdit ? 'disableExpand' : ''"
             label="频道名"
           >
             <template #header>
@@ -167,9 +144,7 @@
           <el-table-column label="操作" align="right" :width="240">
             <template #header>
               <span>{{
-                iptvInfo.enableBatchEdit
-                  ? `频道总数:${channelGroupList.length}`
-                  : `资源总数:${channelList.length}`
+                  `频道总数:${channelGroupList.length}/资源总数:${channelList.length}`
               }}</span>
             </template>
             <template #default="scope">
@@ -204,7 +179,6 @@
     >
       <el-input
         v-model="iptvInfo.parseM3uUrl"
-        size="large"
         placeholder="请输入解析地址"
       />
       <template #footer>
@@ -263,16 +237,20 @@ import {
 import fetch from "@/api/fetch";
 import iptvApi from "@/api/iptv";
 import { _ } from "lodash";
-import { Upload, Download, Refresh, DataLine, Search } from "@element-plus/icons-vue";
+import { Refresh, DataLine, Search } from "@element-plus/icons-vue";
 import Sortable from 'sortablejs'
+import ContextMenu from '@imengyu/vue3-context-menu';
+import { useDark } from "@vueuse/core";
 
 export default defineComponent({
   name: "Iptv",
+  components: {
+  },
   setup() {
+    const isDark = useDark();
+
     const iptvInfo = reactive({
-      enableBatchEdit: false,
       batchIsActive: false,
-      inputContent: "",
       checkAllChannelsLoading: false,
       importChannelVisible: false,
       parseM3uUrl: "",
@@ -285,6 +263,15 @@ export default defineComponent({
       multipleSelection: [],
       showOnlineSearch: false,
       searchIptvList: [],
+      contextMenushow: false,
+      options: {
+        theme: isDark.value ? 'mac dark' : 'mac',
+        iconFontClass: "iconfont",
+        zIndex: 3,
+        minWidth: 230,
+        x: 500,
+        y: 200,
+      },
     });
     const coreStore = useCoreStore();
     const { view, systemConf, shiftDown, playInfo } = storeToRefs(coreStore);
@@ -750,12 +737,9 @@ export default defineComponent({
     // 批量保存编辑
     const saveBatchEdit = async () => {
       iptvInfo.multipleSelection.forEach((ele) => {
-        if (iptvInfo.inputContent) {
-          ele.group = iptvInfo.inputContent;
-        }
         ele.hasChildren = ele.hasChildren ? "1" : "0";
         ele.channels = JSON.stringify(ele.channels);
-        ele.active = iptvInfo.batchIsActive ? "1" : "0";
+        ele.active = iptvInfo.batchIsActive;
       });
       await invoke("save_channel_groups", {
         channelGroups: iptvInfo.multipleSelection,
@@ -769,23 +753,6 @@ export default defineComponent({
       this.$refs.iptvTable.clearFilter()
       this.refreshChannelGroupList()
       this.updateDatabase()
-      this.enableBatchEdit = false
-    }
-
-    const mergeChannel = () => {
-      if (this.inputContent && this.multipleSelection.length) {
-        let channels = []
-        const id = this.multipleSelection[0].id
-        this.multipleSelection.forEach(ele => {
-          channels = channels.concat(ele.channels)
-          channels.forEach(e => { e.channelID = id })
-          channelList.remove(ele.id)
-        })
-        const mergeChannel = { id: id, name: this.inputContent, isActive: channels.some(c => c.isActive), group: this.determineGroup(this.inputContent), hasChildren: channels.length > 1, channels: channels }
-        channelList.add(mergeChannel)
-        this.refreshChannelGroupList()
-        this.updateDatabase()
-      }
     }
     
     const isActiveChangeEvent = async (row) => {
@@ -801,7 +768,7 @@ export default defineComponent({
       await invoke("save_channel_group", { channelGroup: channelGroupClone })
     }
     
-    const checkChannelsBySite = async (channels) => {
+    const checkChannelsBySite = async () => {
       const siteList = {}
       channelList.value.forEach(channel => {
         const site = channel.url.split('/')[2]
@@ -850,6 +817,22 @@ export default defineComponent({
         }
       })
     }
+    
+    const onContextMenu = (e ) => {
+      e.preventDefault();
+      iptvInfo.options.x = e.x;
+      iptvInfo.options.y = e.y;
+      iptvInfo.contextMenushow = true;
+      nextTick(() => {
+        var elements = document.querySelectorAll(".mx-menu-ghost-host");
+        elements.forEach(function (element) {
+          // 为每个元素添加事件监听器
+          element.addEventListener("contextmenu", function (e) {
+            e.preventDefault(); // 阻止默认行为
+          });
+        });
+      });
+    }
 
     watch(
       () => view.value,
@@ -887,18 +870,14 @@ export default defineComponent({
       iptvTableRef,
       sortByLocaleCompare,
       saveBatchEdit,
-      Download,
-      Upload,
-      Refresh,
-      DataLine,
+      showIptvOnlineSearch,
       removeSelectedChannels,
-      mergeChannel,
       isActiveChangeEvent,
       Search,
       checkChannelsBySite,
       moveToTopEvent,
-      showIptvOnlineSearch,
       addChnanel,
+      onContextMenu,
     };
   },
 });

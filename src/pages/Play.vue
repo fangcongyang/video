@@ -255,14 +255,13 @@ export default defineComponent({
     
     const getPlayer = (videoUrl, force = false) => {
       const playerType = getPlayerType(videoUrl);
-      const showPalyPrevAndNext = moviesInfo.moviesList.length > 1;
+      const showPalyPrevAndNext = moviesInfo.moviesList.length > 1 || playInfo.value.iptv.channelGroupId;
       if (force || !player || (!player.dp || playerType !== player.playerType)) {
         closePlayer();
         player = new MoviesPlayer(playerType, playerInfo, playerConf.value, showPalyPrevAndNext);
         bindEvent();
       } else {
-        player.dpConfig.highlight = [];
-        player.dp.palyPrevAndNext(showPalyPrevAndNext)
+        player.dp.playPrevAndNext(showPalyPrevAndNext)
       }
     }
 
@@ -311,11 +310,11 @@ export default defineComponent({
       } else {
         iptvInfo.showChannelGroupList = false
         const key = playMovieUq.value;
-        let time = playInfo.value.movie.time
+        let time = undefined;
         moviesInfo.startPosition = { min: '00', sec: '00' }
         moviesInfo.endPosition = { min: '00', sec: '00' }
         if (currentHistory.value) {
-          if (!time && currentHistory.value.index === playInfo.value.movie.index) {
+          if (currentHistory.value.index == playInfo.value.movie.index) {
             time = currentHistory.value.playTime
           }
           
@@ -388,12 +387,13 @@ export default defineComponent({
           const key = playMovieUq.value;
           getPlayer(url)
           player.dp.switchVideo({url: url, type: player.dpConfig.video.type})
+          bindOnceEvent();
           const startTime = videoDetailCache.value[key].startPosition || 0
           player.dp.seek(time > startTime ? time : startTime)
         }
         videoPlaying()
         playerInfo.skipendStatus = false
-      }).catch(() => {
+      }).catch((err) => {
         ElMessage.error('播放地址可能已失效，请换源并调整收藏');
         otherEvent();
       })
@@ -516,6 +516,23 @@ export default defineComponent({
       
       getPlayer("", true);
     }
+
+    const bindOnceEvent = () => {
+      let dp = player.dp;
+
+      dp.on('playing', lodash.once(() => {
+        if (playInfo.value.movie.siteKey) {
+          const key = playMovieUq.value;
+          player.setHighlightByName(videoDetailCache.value[key]["startPosition"], '片头');
+          let time;
+          if (videoDetailCache.value[key]["endPosition"]) {
+            time = player.dp.video.duration - videoDetailCache.value[key]["endPosition"];
+          }
+          player.setHighlightByName(time, '片尾');
+          player.durationchange();
+        }
+      }))
+    }
     
     // 绑定事件
     const bindEvent = () => {
@@ -553,7 +570,7 @@ export default defineComponent({
         playerConf.value.volume = player.dp.video.volume;
         updatePlayerConf();
       }, 500))
-
+      
       dp.on('timeupdate', () => {
         if (dpConfig.isLive) return
         const key = playMovieUq.value;
@@ -562,17 +579,17 @@ export default defineComponent({
           if (time > 0 && time < 0.3) { // timeupdate每0.25秒触发一次，只有自然播放到该点时才会跳过片尾
             if (!playerInfo.skipendStatus) {
               playerInfo.skipendStatus = true
-              const event = new Event("ended");
-              dp.container.querySelector('.dplayer-video-current').dispatchEvent(event);
+              dp.ended();
             }
           }
         }
       })
 
-      dp.on('play', () => {
+      dp.on('play', async () => {
         clearTimeout(stallIptvTimeout)
         if (!playInfo.value.movie.siteKey && !playInfo.value.iptv.channelGroupId) {
           if (playInfo.value.playType == "movie" && !playInfo.value.movie.ids) {
+            await refreshHistoryList();
             // 如果当前播放页面的播放信息没有被赋值,播放历史记录
             if (historyList.value.length === 0) {
               ElMessage.warning('历史记录为空，无法播放！')
@@ -590,20 +607,6 @@ export default defineComponent({
           }
         }
       })
-
-      dp.on('playing', lodash.once(() => {
-        if (playInfo.value.movie.siteKey) {
-          const key = playMovieUq.value;
-          dpConfig.highlight = [{
-            time: videoDetailCache.value[key]["startPosition"],
-            text: '片头',
-          }, {
-            time: dp.video.duration - videoDetailCache.value[key]["endPosition"],
-            text: '片尾',
-          }]
-          player.durationchange();
-        }
-      }))
 
       dp.on('ended', lodash.debounce(() => {
         if (moviesInfo.moviesList.length > 1 && (moviesInfo.moviesList.length - 1 > playInfo.value.movie.index)) {
@@ -753,7 +756,6 @@ export default defineComponent({
       }
 
       const key = playMovieUq.value;
-      player.dpConfig.highlight = []
       if (startTime != 0) {
         videoDetailCache.value[key]["startPosition"] = startTime
         currentHistory.value["startPosition"] = startTime
@@ -982,7 +984,7 @@ export default defineComponent({
     watch(() => {
       if (playInfo.value.playType == "movie") return playInfo.value.movie.siteKey + '@' + playInfo.value.movie.ids + '@' + playInfo.value.movie.index
       if (playInfo.value.playType == "iptv") return playInfo.value.channelGroupId;
-    }, () => {
+    }, async () => {
       if (playerInfo.changingIPTV) return
       // 手动关闭播放器，直接返回
       if (moviesInfo.manualClosePlayer) {
@@ -990,7 +992,7 @@ export default defineComponent({
         return
       }
       if (playInfo.value.playType == "movie") {
-        refreshCurrentHistory();
+        await refreshCurrentHistory();
       }
       getUrls();
     }, { deep: true })

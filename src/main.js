@@ -8,6 +8,8 @@ import "element-plus/theme-chalk/index.css";
 import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import zhCn from "element-plus/dist/locale/zh-cn.mjs";
 import VueLazyload from "vue-lazyload";
+import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
+import ContextMenu from '@imengyu/vue3-context-menu'
 
 const pinia = createPinia();
 
@@ -21,4 +23,5 @@ app
   })
   .use(pinia)
   .use(VueLazyload)
+  .use(ContextMenu)
   .mount("#app");

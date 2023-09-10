@@ -24,8 +24,8 @@ export const useStarStore = defineStore('star', {
           if (item.area) {
             areas.add(item.area);
           }
-          if (item.type) {
-            types.add(item.type);
+          if (item.movieType) {
+            types.add(item.movieType);
           }
         });
         this.star = {

@@ -3,8 +3,8 @@ name = "vop"
 version = "0.0.0"
 description = "VideoOnlinePlay"
 authors = ["fangcy"]
-license = ""
-repository = ""
+license = "GPLv3"
+repository = "https://github.com/fangcongyang/video"
 edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
