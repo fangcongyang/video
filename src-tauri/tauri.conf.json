@@ -36,8 +36,7 @@
         "icons/icon.ico"
       ],
       "resources": [
-        "./initData",
-        "./expand"
+        "./initData"
       ],
       "windows": {
         "allowDowngrades": true,
