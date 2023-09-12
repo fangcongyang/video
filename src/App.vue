@@ -3,11 +3,11 @@
     <Aside></Aside>
     <div class="main-body">
       <WinTool data-tauri-drag-region :minimizable="true" :maximizable="true" />
-      <Movie v-show="view === 'Movie'" />
+      <Movie :class="view === 'Movie' ? 'active-page' : 'not-active-page'" />
       <IPTV v-show="view === 'IPTV'" />
       <Play v-show="view === 'Play'" />
-      <Star v-show="view === 'Star'" />
-      <History v-show="view === 'History'" />
+      <Star :class="view === 'Star' ? 'active-page' : 'not-active-page'" />
+      <History :class="view === 'History' ? 'active-page' : 'not-active-page'" />
       <Setting v-show="view === 'Setting'" />
       <EditSites v-show="view === 'EditSites'" />
     </div>
@@ -109,6 +109,14 @@ export default defineComponent({
     align-items: flex-start;
     flex-direction: column;
     padding: 0 20px 20px;
+  }
+
+  .active-page {
+    transform: translate(0, 0);
+  }
+
+  .not-active-page{
+    transform: translate(100vh, 100vh);
   }
 }
 </style>

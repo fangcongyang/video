@@ -1099,9 +1099,13 @@ export default defineComponent({
 </style>
 <style lang="scss" scoped>
 .play{
-  position: relative;
+  position: absolute;
+  left: 80px;
+  right: 20px;
+  top: 40px;
+  bottom: 20px;
+  width: calc(100% - 100px);
   height: calc(100% - 60px);
-  width: 100%;
   display: flex;
   justify-content: center;
   align-items: center;

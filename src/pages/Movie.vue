@@ -1,8 +1,61 @@
 <template>
-  <div class="listpage">
+  <div class="listpage" @contextmenu="onContextMenu($event)">
+    <context-menu
+      v-model:show="movieInfo.contextMenushow"
+      :options="movieInfo.options"
+    >
+      <context-menu-group label="地区" :clickClose="false">
+        <context-menu-item
+          v-for="item in movieInfo.areas"
+          @click="areaClick(item)"
+        >
+          <template #label>
+            <span class="dot" v-if="movieInfo.selectedAreas.includes(item)"></span>
+            <span
+              class="label"
+              :style="
+                movieInfo.selectedAreas.includes(item)
+                  ? { marginLeft: '6px' }
+                  : { marginLeft: '10px' }
+              "
+              >{{ item }}</span
+            >
+          </template>
+        </context-menu-item>
+      </context-menu-group>
+      <context-menu-group label="排序" :clickClose="false">
+        <context-menu-item
+          v-for="item in movieInfo.sortKeywords"
+          @click="
+            () => {
+              movieInfo.sortKeyword = item;
+              refreshFilteredList();
+            }
+          "
+        >
+          <template #label>
+            <span class="dot" v-if="movieInfo.sortKeyword == item"></span>
+            <span
+              class="label"
+              :style="
+                movieInfo.sortKeyword == item
+                  ? { marginLeft: '6px' }
+                  : { marginLeft: '10px' }
+              "
+              >{{ item.name }}</span
+            >
+          </template>
+        </context-menu-item>
+      </context-menu-group>
+      <context-menu-item :label="moviesConf.moviesViewMode == 'picture' ? '表格模式' : '图片模式'" @click="toggleViewMode()">
+        <template #icon>
+          <el-icon><Switch /></el-icon>
+        </template>
+      </context-menu-item>
+    </context-menu>
     <div class="listpage-header" id="movies-header">
       <el-select
-        v-model="moviesInfo.selectedSiteName"
+        v-model="movieInfo.selectedSiteName"
         placeholder="源站"
         :popper-append-to-body="false"
         @change="siteClick"
@@ -16,14 +69,14 @@
         </el-option>
       </el-select>
       <el-select
-        v-model="moviesInfo.selectedClassName"
+        v-model="movieInfo.selectedClassName"
         placeholder="类型"
         :popper-append-to-body="false"
         popper-class="popper"
         style="width: 210Px;"
         @change="classClick"
         v-if="classList && classList.length"
-        v-show="!moviesInfo.showFind"
+        v-show="!movieInfo.showFind"
       >
         <el-option
           v-for="item in classList"
@@ -34,18 +87,18 @@
         </el-option>
       </el-select>
       <el-select
-        v-model="moviesInfo.selectedSearchClassNames"
+        v-model="movieInfo.selectedSearchClassNames"
         multiple
         placeholder="类型"
         :popper-append-to-body="false"
         popper-class="popper"
-        v-if="moviesInfo.searchClassList && moviesInfo.searchClassList.length"
-        v-show="moviesInfo.showFind && moviesInfo.showToolbar"
+        v-if="movieInfo.searchClassList && movieInfo.searchClassList.length"
+        v-show="movieInfo.showFind"
         @remove-tag="refreshFilteredList"
         @change="refreshFilteredList"
       >
         <el-option
-          v-for="(item, index) in moviesInfo.searchClassList"
+          v-for="(item, index) in movieInfo.searchClassList"
           :key="index"
           :label="item"
           :value="item"
@@ -53,7 +106,7 @@
         </el-option>
       </el-select>
       <el-autocomplete
-        v-model.trim="moviesInfo.searchTxt"
+        v-model.trim="movieInfo.searchTxt"
         value-key="keywords"
         :fetch-suggestions="querySearch"
         :popper-append-to-body="false"
@@ -74,7 +127,7 @@
             @change="searchEvent"
           >
             <el-option
-              v-for="item in moviesInfo.searchGroups"
+              v-for="item in movieInfo.searchGroups"
               :key="item"
               :label="item"
               :value="item"
@@ -83,7 +136,7 @@
           </el-select>
         </template>
         <template #append>
-          <el-button @click.stop="searchEvent" v-if="!moviesInfo.searchRunning">
+          <el-button @click.stop="searchEvent" v-if="!movieInfo.searchRunning">
             <el-icon style="vertical-align: middle">
               <Search />
             </el-icon>
@@ -91,7 +144,7 @@
           <el-button
             icon="el-icon-loading"
             @click.stop="stopSearchEvent"
-            v-if="moviesInfo.searchRunning"
+            v-if="movieInfo.searchRunning"
             title="点击可停止搜索"
           >
             <el-icon>
@@ -101,81 +154,16 @@
         </template>
       </el-autocomplete>
     </div>
-    <div class="toolbar" v-show="moviesInfo.showToolbar">
-      <el-select
-        v-model="moviesInfo.selectedAreas"
-        multiple
-        placeholder="地区"
-        popper-class="popper"
-        :popper-append-to-body="false"
-        @remove-tag="refreshFilteredList"
-        @change="refreshFilteredList"
-      >
-        <el-option
-          v-for="item in moviesInfo.areas"
-          :key="item"
-          :label="item"
-          :value="item"
-        >
-        </el-option>
-      </el-select>
-      <el-select
-        v-model="moviesInfo.sortKeyword"
-        placeholder="排序"
-        popper-class="popper"
-        :popper-append-to-body="false"
-        @change="refreshFilteredList"
-      >
-        <el-option
-          v-for="item in moviesInfo.sortKeywords"
-          :key="item"
-          :label="item"
-          :value="item"
-        >
-        </el-option>
-      </el-select>
-      <span>
-        上映区间：
-        <el-input-number
-          v-model="moviesInfo.selectedYears.start"
-          :min="0"
-          :max="new Date().getFullYear()"
-          controls-position="right"
-          step-strictly
-          @change="refreshFilteredList"
-        ></el-input-number>
-        至
-        <el-input-number
-          v-model="moviesInfo.selectedYears.end"
-          :min="0"
-          :max="new Date().getFullYear()"
-          controls-position="right"
-          step-strictly
-          @change="refreshFilteredList"
-        ></el-input-number>
-      </span>
-    </div>
-    <el-divider class="listpage-header-divider" content-position="right">
-      <el-button link size="small" @click="toggleViewMode">视图切换</el-button>
-      <el-button
-        link
-        size="small"
-        @click="showToolbar"
-        title="收起工具栏会重置筛选排序"
-        >{{ moviesInfo.showToolbar ? "隐藏工具栏" : "显示工具栏" }}</el-button
-      >
-      <el-button link size="small" @click="backTop">回到顶部</el-button>
-    </el-divider>
-    <div class="listpage-body" id="film-body" infinite-wrapper>
+    <div class="listpage-body" id="movie-body" infinite-wrapper>
       <div
         class="show-picture"
-        v-if="moviesConf.moviesViewMode === 'picture' && !moviesInfo.showFind"
+        v-if="moviesConf.moviesViewMode === 'picture' && !movieInfo.showFind"
       >
         <Waterfall
           v-infinite-scroll="infiniteHandler"
           infinite-scroll-distance="100"
           ref="moviesWaterfall"
-          :list="moviesInfo.moviesFilteredList"
+          :list="movieInfo.moviesFilteredList"
           :gutter="20"
           :width="240"
           :breakpoints="{
@@ -224,14 +212,14 @@
       </div>
       <div
         class="show-table"
-        v-if="moviesConf.moviesViewMode === 'table' && !moviesInfo.showFind"
+        v-if="moviesConf.moviesViewMode === 'table' && !movieInfo.showFind"
       >
         <el-table
           size="small"
-          :data="moviesInfo.moviesFilteredList"
+          :data="movieInfo.moviesFilteredList"
           ref="moviesTableRef"
           height="100%"
-          :empty-text="moviesInfo.statusText"
+          :empty-text="movieInfo.statusText"
           @row-click="detailEvent"
           v-infinite-scroll="infiniteHandler"
           infinite-scroll-distance="100"
@@ -239,7 +227,7 @@
         >
           <el-table-column prop="name" label="片名"> </el-table-column>
           <el-table-column
-            v-if="moviesInfo.classType.name === '最新'"
+            v-if="movieInfo.classType.name === '最新'"
             prop="type"
             label="类型"
             width="100"
@@ -252,7 +240,7 @@
           <el-table-column prop="lang" label="语言" width="100">
           </el-table-column>
           <el-table-column
-            v-if="moviesInfo.showTableLastColumn"
+            v-if="movieInfo.showTableLastColumn"
             prop="last"
             label="最近更新"
             :formatter="dateFormat"
@@ -293,14 +281,14 @@
       </div>
       <div
         class="show-table"
-        v-if="moviesConf.moviesViewMode === 'table' && moviesInfo.showFind"
+        v-if="moviesConf.moviesViewMode === 'table' && movieInfo.showFind"
       >
         <el-table
           size="small"
           ref="searchResultTableRef"
-          :data="moviesInfo.filteredSearchContents"
+          :data="movieInfo.filteredSearchContents"
           height="100%"
-          :empty-text="moviesInfo.statusText"
+          :empty-text="movieInfo.statusText"
           @filter-change="filterChange"
           @row-click="detailEvent"
           style="width: 100%"
@@ -353,7 +341,7 @@
           >
           </el-table-column>
           <el-table-column
-            v-if="moviesInfo.showTableLastColumn"
+            v-if="movieInfo.showTableLastColumn"
             prop="last"
             label="最近更新"
             :formatter="dateFormat"
@@ -394,11 +382,11 @@
       </div>
       <div
         class="show-picture"
-        v-if="moviesConf.moviesViewMode === 'picture' && moviesInfo.showFind"
+        v-if="moviesConf.moviesViewMode === 'picture' && movieInfo.showFind"
       >
         <Waterfall
           ref="filmSearchWaterfall"
-          :list="moviesInfo.filteredSearchContents"
+          :list="movieInfo.filteredSearchContents"
           :gutter="20"
           :width="240"
           :breakpoints="{
@@ -454,6 +442,7 @@
           </template>
         </Waterfall>
       </div>
+      <el-backtop target="#movie-body" :right="100" :bottom="40" />
     </div>
   </div>
 </template>
@@ -465,6 +454,7 @@ import {
   onMounted,
   watch,
   computed,
+  nextTick,
 } from "vue";
 import { useCoreStore } from "@/store";
 import { useMovieStore } from "@/store/movie";
@@ -472,12 +462,14 @@ import { storeToRefs } from "pinia";
 import moviesApi from "@/api/movies";
 import { ElMessage } from "element-plus";
 import { invoke } from "@tauri-apps/api/tauri";
-import { debounce } from "lodash";
+import { _ } from "lodash";
 import { Waterfall } from "vue-waterfall-plugin-next";
 import "vue-waterfall-plugin-next/dist/style.css";
 import ImageLazy from "@/components/ImageLazy.vue";
 import { downloadEvent } from "@/business/movie";
 import doubanApi from "@/api/douban";
+import ContextMenu from '@imengyu/vue3-context-menu';
+import { useDark } from "@vueuse/core";
 
 const FILM_DATA_CACHE = {};
 
@@ -487,8 +479,35 @@ export default defineComponent({
     Waterfall,
     ImageLazy,
   },
+  
   setup() {
-    const moviesInfo = reactive({
+    const isDark = useDark();
+
+    const orderFun = (a, b) => {
+      const field = movieInfo.sortKeyword.field;
+      let aValue = a, bValue = b;
+      if (field.includes(".")) {
+        field.split(".").forEach(i => {
+          aValue = aValue[i];
+          bValue = bValue[i];
+        })
+      } else {
+        aValue = a[field];
+        bValue = b[field];
+      }
+      if (movieInfo.sortKeyword.reverse) {
+        let temValue = aValue;
+        aValue = bValue;
+        bValue = temValue;
+      }
+      if (movieInfo.sortKeyword.type == 'zh') {
+        return aValue.localeCompare(bValue, "zh");
+      } else {
+        return aValue - bValue;
+      }
+    };
+
+    const movieInfo = reactive({
       searchId: 0,
       siteSearchCount: 0,
       selectedSiteName: "",
@@ -500,20 +519,54 @@ export default defineComponent({
       showFind: false,
       areas: [],
       selectedAreas: [],
-      showToolbar: false,
       moviesFilteredList: [],
       infiniteId: 1,
       statusText: "",
       showTableLastColumn: false,
       filteredSearchContents: [],
       searchGroups: ["站内", "组内", "全站"],
-      sortKeyword: "",
-      sortKeywords: ["按片名", "按上映年份", "按更新时间"],
+      sortKeyword: {},
+      sortKeywords: [
+        {
+          name: "不排序",
+          field: "",
+          orderFun: null,
+        },
+        {
+          name: "按片名",
+          field: "name",
+          orderFun: orderFun,
+          type: "zh",
+          reverse: false,
+        },
+        {
+          name: "按上映年份",
+          field: "detail.year",
+          orderFun: orderFun,
+          type: "en",
+          reverse: true,
+        },
+        {
+          name: "按更新时间",
+          field: "detail.last",
+          orderFun: orderFun,
+          type: "zh",
+          reverse: true,
+        },
+      ],
       searchRunning: false,
       selectedSearchClassNames: [],
       searchClassList: [],
-      selectedYears: { start: 0, end: new Date().getFullYear() },
       currentSite: {},
+      contextMenushow: false,
+      options: {
+        theme: isDark.value ? 'mac dark' : 'mac',
+        iconFontClass: "iconfont",
+        zIndex: 3,
+        minWidth: 230,
+        x: 500,
+        y: 200,
+      },
     });
 
     const coreStore = useCoreStore();
@@ -551,17 +604,17 @@ export default defineComponent({
 
     const searchSites = computed(() => {
       if (moviesConf.value.searchGroup === "站内")
-        return [moviesInfo.currentSite];
+        return [movieInfo.currentSite];
       if (moviesConf.value.searchGroup === "组内")
         return siteList.value.filter(
-          (site) => site.group === moviesInfo.currentSite.group
+          (site) => site.group === movieInfo.currentSite.group
         );
       if (moviesConf.value.searchGroup === "全站") return siteList.value;
       return siteList.value.filter((site) => site.isActive);
     });
 
     const toggleViewMode = () => {
-      if (moviesInfo.showFind) {
+      if (movieInfo.showFind) {
         moviesConf.value.moviesViewMode =
           moviesConf.value.moviesViewMode === "picture" ? "table" : "picture";
       } else {
@@ -572,24 +625,23 @@ export default defineComponent({
     };
 
     const initSite = async () => {
-      moviesInfo.selectedSiteName = siteList.value[0].key;
-      siteClick(moviesInfo.selectedSiteName);
+      movieInfo.selectedSiteName = siteList.value[0].key;
+      siteClick(movieInfo.selectedSiteName);
     };
 
     const siteClick = (siteKey) => {
-      backTop();
-      moviesInfo.currentSite = getSiteByKey(siteKey);
-      if (moviesConf.value.searchGroup === "站内" && moviesInfo.searchTxt) {
+      movieInfo.currentSite = getSiteByKey(siteKey);
+      if (moviesConf.value.searchGroup === "站内" && movieInfo.searchTxt) {
         searchEvent();
         return;
       } else {
-        moviesInfo.searchTxt = "";
+        movieInfo.searchTxt = "";
       }
-      moviesInfo.showFind = false;
+      movieInfo.showFind = false;
       classList.value = [];
-      if (FILM_DATA_CACHE[moviesInfo.currentSite.key]) {
-        classList.value = FILM_DATA_CACHE[moviesInfo.currentSite.key];
-        classClick(moviesInfo.selectedClassName);
+      if (FILM_DATA_CACHE[movieInfo.currentSite.key]) {
+        classList.value = FILM_DATA_CACHE[movieInfo.currentSite.key];
+        classClick(movieInfo.selectedClassName);
       } else {
         refreshClass();
       }
@@ -598,7 +650,7 @@ export default defineComponent({
     const refreshClass = () => {
       let classPromise = new Promise((resolve, reject) => {
         moviesApi
-          .getSiteClass(moviesInfo.currentSite)
+          .getSiteClass(movieInfo.currentSite)
           .then((res) => {
             const allClass = [{ name: "最新", id: 0 }];
             res.classList.forEach((element) => {
@@ -616,8 +668,8 @@ export default defineComponent({
         .then(
           (res) => {
             classList.value = res;
-            FILM_DATA_CACHE[moviesInfo.currentSite.key] = classList.value;
-            classClick(moviesInfo.classType.name);
+            FILM_DATA_CACHE[movieInfo.currentSite.key] = classList.value;
+            classClick(movieInfo.classType.name);
           },
           () => {
             ElMessage.error("获取分类资源失败");
@@ -631,28 +683,39 @@ export default defineComponent({
     const classClick = (className) => {
       let classType = classList.value.find((x) => x.name === className);
       if (classType) {
-        moviesInfo.classType = classType;
+        movieInfo.classType = classType;
       }
-      if (!moviesInfo.classType) {
-        moviesInfo.classType = classList.value[0];
+      if (!movieInfo.classType) {
+        movieInfo.classType = classList.value[0];
       }
-      if (moviesInfo.selectedClassName.endsWith("剧"))
-        moviesInfo.selectedAreas = [];
+      if (movieInfo.selectedClassName.endsWith("剧"))
+        movieInfo.selectedAreas = [];
       const cacheKey =
-        moviesInfo.currentSite.key + "@" + moviesInfo.classType.id;
+        movieInfo.currentSite.key + "@" + movieInfo.classType.id;
       if (FILM_DATA_CACHE[cacheKey]) {
         moviesPageInfo.value = FILM_DATA_CACHE[cacheKey];
       } else {
         let params = {};
-        if (moviesInfo.classType.id != -1) {
-          params.t = moviesInfo.classType.id;
+        if (movieInfo.classType.id != -1) {
+          params.t = movieInfo.classType.id;
         }
-        moviesApi.pageMovies(moviesInfo.currentSite, params).then((res) => {
+        moviesApi.pageMovies(movieInfo.currentSite, params).then((res) => {
           moviesPageInfo.value = res;
           infiniteHandler();
         });
       }
     };
+
+    const areaClick = (item) => {
+      if (_.includes(movieInfo.selectedAreas, item)) {
+        movieInfo.selectedAreas = _.dropWhile(movieInfo.selectedAreas, (o) => {
+          return o == item
+        })
+      } else {
+        movieInfo.selectedAreas.push(item);
+      }
+      refreshFilteredList();
+    }
 
     const containsClassFilterKeyword = (name) => {
       let ret = false;
@@ -667,95 +730,49 @@ export default defineComponent({
       return ret;
     };
 
-    const backTop = () => {
-      if (moviesConf.value.moviesViewMode === "picture") {
-        document.getElementById("film-body").scrollTop = 0;
-      } else {
-        const table = moviesInfo.showFind ? searchResultTableRef.value : moviesTableRef.value;
-        table.bodyWrapper.scrollTop = 0
-      }
-    };
-
-    const showToolbar = () => {
-      moviesInfo.showToolbar = !moviesInfo.showToolbar;
-      if (!moviesInfo.showToolbar) refreshFilteredList();
-    };
-
-    const refreshFilteredList = () => {
-      if (!moviesInfo.showToolbar) {
-        moviesInfo.sortKeyword = "";
-        moviesInfo.selectedAreas = [];
-        moviesInfo.selectedSearchClassNames = [];
-        moviesInfo.selectedYears.start = 0;
-        moviesInfo.selectedYears.end = new Date().getFullYear();
-      }
-      let filteredData = moviesInfo.showFind
-        ? moviesInfo.searchContents
+    const refreshFilteredList = _.debounce(() => {
+      let filteredData = movieInfo.showFind
+        ? movieInfo.searchContents
         : moviesPageInfo.value.moviesList;
-      if (moviesInfo.showFind)
+      if (movieInfo.showFind)
         filteredData = filteredData.filter(
           (x) =>
-            moviesInfo.selectedSearchClassNames.length === 0 ||
-            moviesInfo.selectedSearchClassNames.includes(x.type)
+            movieInfo.selectedSearchClassNames.length === 0 ||
+            movieInfo.selectedSearchClassNames.includes(x.type)
         );
       filteredData = filteredData.filter(
         (x) =>
-          moviesInfo.selectedAreas.length === 0 ||
-          moviesInfo.selectedAreas.includes(x.area)
+          movieInfo.selectedAreas.length === 0 ||
+          movieInfo.selectedAreas.includes(x.area)
       );
       filteredData = filteredData.filter(
         (res) =>
           !moviesConf.value.excludeR18Films ||
           !containsClassFilterKeyword(res.type)
       );
-      filteredData = filteredData.filter(
-        (res) => res.year >= moviesInfo.selectedYears.start
-      );
-      filteredData = filteredData.filter(
-        (res) => res.year <= moviesInfo.selectedYears.end
-      );
-      if (!moviesInfo.showFind)
-        moviesInfo.selectedClassName =
-          moviesInfo.classType.name +
+      if (!movieInfo.showFind)
+        movieInfo.selectedClassName =
+          movieInfo.classType.name +
           "    " +
           filteredData.length +
           "/" +
           moviesPageInfo.value.recordcount;
-      switch (moviesInfo.sortKeyword) {
-        case "按上映年份":
-          filteredData.sort(function (a, b) {
-            return b.year - a.year;
-          });
-          break;
-        case "按片名":
-          filteredData.sort(function (a, b) {
-            return a.name.localeCompare(b.name, "zh");
-          });
-          break;
-        case "按更新时间":
-          filteredData.sort(function (a, b) {
-            return new Date(b.last) - new Date(a.last);
-          });
-          break;
-        default:
-          filteredData.sort(function (a, b) {
-            return new Date(b.last) - new Date(a.last);
-          });
-          break;
-      }
 
-      filteredData = Array.from(new Set(filteredData));
-      if (moviesInfo.showFind) {
-        moviesInfo.filteredSearchContents = filteredData;
+      if (movieInfo.sortKeyword.orderFun)
+        filteredData.sort(movieInfo.sortKeyword.orderFun);
+
+      _.uniqBy(filteredData, "name")
+      if (movieInfo.showFind) {
+        movieInfo.filteredSearchContents = filteredData;
       } else {
-        moviesInfo.moviesFilteredList = filteredData;
+        movieInfo.moviesFilteredList = filteredData;
       }
-    };
+    }, 500);
 
     const detailEvent = (e) => {
       detail.value = {
         show: true,
-        siteKey: moviesInfo.currentSite.key,
+        siteKey: movieInfo.currentSite.key,
         ids: e.id.toString(),
       };
     };
@@ -763,7 +780,7 @@ export default defineComponent({
     const playEvent = async (e) => {
       playInfo.value.playType = "movie";
       playInfo.value.name = e.name;
-      playInfo.value.movie.siteKey = moviesInfo.currentSite.key;
+      playInfo.value.movie.siteKey = movieInfo.currentSite.key;
       playInfo.value.movie.ids = e.id;
       playInfo.value.movie.index = 0;
       playInfo.value.movie.videoFlag = "";
@@ -771,7 +788,7 @@ export default defineComponent({
     };
 
     const starEvent = async (e) => {
-      let siteKey = moviesInfo.currentSite.key,
+      let siteKey = movieInfo.currentSite.key,
         ids = e.id.toString();
       const starStr = await invoke("get_star_by_uq", {
         siteKey: siteKey,
@@ -783,7 +800,7 @@ export default defineComponent({
         const cacheKey = siteKey + "@" + ids;
         if (!moviesDetailCache.value[cacheKey]) {
           moviesDetailCache.value[cacheKey] = await moviesApi.detail(
-            moviesInfo.currentSite,
+            movieInfo.currentSite,
             e.id
           );
         }
@@ -810,20 +827,20 @@ export default defineComponent({
     const shareEvent = (e) => {
       this.share = {
         show: true,
-        key: moviesInfo.currentSite.key,
+        key: movieInfo.currentSite.key,
         info: e,
       };
     };
 
-    const infiniteHandler = debounce(() => {
-      const key = moviesInfo.currentSite.key;
-      let typeTid = moviesInfo.classType.id;
+    const infiniteHandler = _.debounce(() => {
+      const key = movieInfo.currentSite.key;
+      let typeTid = movieInfo.classType.id;
       let page = moviesPageInfo.value.pageCount;
       let totalPageCount = moviesPageInfo.value.totalPageCount;
       page = totalPageCount - page + 1;
-      moviesInfo.statusText = " ";
+      movieInfo.statusText = " ";
       if (key === undefined || page < 1 || page > totalPageCount) {
-        moviesInfo.statusText = "暂无数据";
+        movieInfo.statusText = "暂无数据";
         return false;
       }
       setTimeout(() => {
@@ -831,7 +848,7 @@ export default defineComponent({
           pg: page,
           t: typeTid == -1 ? undefined : typeTid,
         };
-        moviesApi.listMovies(moviesInfo.currentSite, params).then(
+        moviesApi.listMovies(movieInfo.currentSite, params).then(
           (res) => {
             if (res) {
               moviesPageInfo.value.pageCount -= 1;
@@ -859,7 +876,7 @@ export default defineComponent({
                 }
               }
               // 更新缓存数据
-              const cacheKey = moviesInfo.currentSite.key + "@" + typeTid;
+              const cacheKey = movieInfo.currentSite.key + "@" + typeTid;
               FILM_DATA_CACHE[cacheKey] = moviesPageInfo.value;
               refreshFilteredList();
             }
@@ -883,13 +900,13 @@ export default defineComponent({
       if (column === "siteName")
         return [
           ...new Set(
-            moviesInfo.filteredSearchContents.map((row) => row.site.name)
+            movieInfo.filteredSearchContents.map((row) => row.site.name)
           ),
         ].map((e) => {
           return { text: e, value: e };
         });
       return [
-        ...new Set(moviesInfo.filteredSearchContents.map((row) => row[column])),
+        ...new Set(movieInfo.filteredSearchContents.map((row) => row[column])),
       ].map((e) => {
         return { text: e, value: e };
       });
@@ -921,20 +938,20 @@ export default defineComponent({
     };
 
     const searchEvent = () => {
-      const wd = moviesInfo.searchTxt;
+      const wd = movieInfo.searchTxt;
       if (!wd) return;
-      moviesInfo.searchId += 1;
-      moviesInfo.searchContents = [];
-      moviesInfo.showFind = true;
-      moviesInfo.statusText = " ";
-      moviesInfo.searchRunning = true;
-      moviesInfo.siteSearchCount = 0;
+      movieInfo.searchId += 1;
+      movieInfo.searchContents = [];
+      movieInfo.showFind = true;
+      movieInfo.statusText = " ";
+      movieInfo.searchRunning = true;
+      movieInfo.siteSearchCount = 0;
       searchSites.value.forEach((site) => {
-        const id = moviesInfo.searchId;
+        const id = movieInfo.searchId;
         moviesApi
           .search(site, wd)
           .then((res) => {
-            if (id !== moviesInfo.searchId || !moviesInfo.searchRunning) return;
+            if (id !== movieInfo.searchId || !movieInfo.searchRunning) return;
             const type = Object.prototype.toString.call(res);
             if (type === "[object Array]") {
               let count = 0;
@@ -942,13 +959,13 @@ export default defineComponent({
                 moviesApi
                   .detail(site, element.id)
                   .then((detailRes) => {
-                    if (id !== moviesInfo.searchId || !moviesInfo.searchRunning)
+                    if (id !== movieInfo.searchId || !movieInfo.searchRunning)
                       return;
                     if (detailRes) {
                       detailRes.site = site;
                       if (isValidSearchResult(detailRes)) {
-                        moviesInfo.searchContents.push(detailRes);
-                        moviesInfo.searchContents.sort(function (a, b) {
+                        movieInfo.searchContents.push(detailRes);
+                        movieInfo.searchContents.sort(function (a, b) {
                           return a.site.id - b.site.id;
                         });
                         refreshFilteredList();
@@ -958,8 +975,8 @@ export default defineComponent({
                   .finally(() => {
                     count++;
                     if (count === res.length) {
-                      moviesInfo.siteSearchCount++;
-                      moviesInfo.statusText = "暂无数据";
+                      movieInfo.siteSearchCount++;
+                      movieInfo.statusText = "暂无数据";
                     }
                   });
               });
@@ -967,29 +984,29 @@ export default defineComponent({
               moviesApi
                 .detail(site, res.id)
                 .then((detailRes) => {
-                  if (id !== moviesInfo.searchId || !moviesInfo.searchRunning)
+                  if (id !== movieInfo.searchId || !movieInfo.searchRunning)
                     return;
                   detailRes.site = site;
                   if (isValidSearchResult(detailRes)) {
-                    moviesInfo.searchContents.push(detailRes);
-                    moviesInfo.searchContents.sort(function (a, b) {
+                    movieInfo.searchContents.push(detailRes);
+                    movieInfo.searchContents.sort(function (a, b) {
                       return a.site.id - b.site.id;
                     });
                   }
                 })
                 .finally(() => {
-                  moviesInfo.siteSearchCount++;
-                  moviesInfo.statusText = "暂无数据";
+                  movieInfo.siteSearchCount++;
+                  movieInfo.statusText = "暂无数据";
                 });
             } else if (res === undefined) {
-              moviesInfo.siteSearchCount++;
-              moviesInfo.statusText = "暂无数据";
+              movieInfo.siteSearchCount++;
+              movieInfo.statusText = "暂无数据";
               if (moviesConf.value.searchGroup === "站内")
                 ElMessage.info("没有查询到数据！");
             }
           })
           .catch(() => {
-            moviesInfo.siteSearchCount++;
+            movieInfo.siteSearchCount++;
             if (moviesConf.value.searchGroup === "站内")
               ElMessage({
                 showClose: true,
@@ -1024,7 +1041,7 @@ export default defineComponent({
     };
 
     const addSearchRecord = async () => {
-      const wd = moviesInfo.searchTxt;
+      const wd = movieInfo.searchTxt;
       if (wd) {
         await invoke("save_search_record", {
           searchRecord: { id: 0, keywords: wd },
@@ -1034,45 +1051,61 @@ export default defineComponent({
     };
 
     const searchClearEvent = () => {
-      if (!moviesInfo.searchTxt) {
-        moviesInfo.searchContents = [];
-        moviesInfo.showFind = false;
-        moviesInfo.searchRunning = false;
+      if (!movieInfo.searchTxt) {
+        movieInfo.searchContents = [];
+        movieInfo.showFind = false;
+        movieInfo.searchRunning = false;
         initSite();
       }
     };
 
     const stopSearchEvent = () => {
-      moviesInfo.searchRunning = false;
+      movieInfo.searchRunning = false;
     };
 
+    const onContextMenu = (e ) => {
+      e.preventDefault();
+      movieInfo.options.x = e.x;
+      movieInfo.options.y = e.y;
+      movieInfo.contextMenushow = true;
+      nextTick(() => {
+        var elements = document.querySelectorAll(".mx-menu-ghost-host");
+        elements.forEach(function (element) {
+          // 为每个元素添加事件监听器
+          element.addEventListener("contextmenu", function (e) {
+            e.preventDefault(); // 阻止默认行为
+          });
+        });
+      });
+    }
+
     watch(
-      () => moviesInfo.searchTxt,
+      () => movieInfo.searchTxt,
       async () => {
-        if (moviesInfo.searchTxt === "清除历史记录...") {
+        if (movieInfo.searchTxt === "清除历史记录...") {
           await invoke("del_all_search_record", {});
           refreshSearchRecordList();
-          moviesInfo.searchTxt = "";
+          movieInfo.searchTxt = "";
           searchClearEvent();
         }
       }
     );
 
     watch(
-      () => moviesInfo.siteSearchCount,
+      () => movieInfo.siteSearchCount,
       () => {
-        if (moviesInfo.siteSearchCount === searchSites.value.length) {
-          moviesInfo.searchRunning = false;
+        if (movieInfo.siteSearchCount === searchSites.value.length) {
+          movieInfo.searchRunning = false;
         }
       }
     );
     
     watch(
-      () => moviesInfo.searchContents,
+      () => movieInfo.moviesFilteredList,
       () => {
-        let moviesFilteredList = moviesInfo.moviesFilteredList.filter(res => !moviesConf.value.excludeR18Films || !containsClassFilterKeyword(res.type))
-        moviesInfo.areas = [...new Set(moviesFilteredList.map(ele => ele.area))].filter(x => x)
-        moviesInfo.searchClassList = [...new Set(moviesFilteredList.map(ele => ele.type))].filter(x => x)
+        let moviesFilteredList = movieInfo.moviesFilteredList.filter(res => !moviesConf.value.excludeR18Films || !containsClassFilterKeyword(res.type))
+        movieInfo.areas = [...new Set(moviesFilteredList.map(ele => ele.area))].filter(x => x)
+        movieInfo.searchClassList = [...new Set(moviesFilteredList.map(ele => ele.type))].filter(x => x)
         refreshFilteredList()
       },  {
         deep: true
@@ -1080,6 +1113,7 @@ export default defineComponent({
     )
 
     onMounted(() => {
+      movieInfo.sortKeyword = movieInfo.sortKeywords[0];
       getMoviesConf();
       getAllSearchRecord();
       getAllSite().then(() => {
@@ -1088,14 +1122,12 @@ export default defineComponent({
     });
 
     return {
-      moviesInfo,
+      movieInfo,
       siteList,
       siteClick,
       classList,
       classClick,
       toggleViewMode,
-      backTop,
-      showToolbar,
       moviesWaterfall,
       detailEvent,
       playEvent,
@@ -1117,6 +1149,8 @@ export default defineComponent({
       stopSearchEvent,
       downloadEvent,
       searchResultTableRef,
+      onContextMenu,
+      areaClick,
     };
   },
 });
