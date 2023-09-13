@@ -12,7 +12,7 @@
           "
           >软件完全免费，如遇收费，请立即给差评并退费！</a
         >
-        <!-- <a style="color:#38dd77" @click="openUpdate()" v-show="update.find" >最新版本v{{update.version}}</a> -->
+        <a style="color:#38dd77" @click="openUpdate()" >检查更新</a>
       </div>
       <div class="setting-item">
         <div class="title">快捷键</div>
@@ -240,7 +240,6 @@
         </div>
       </div>
       <div class="clearDB">
-        <span @click="clearDBEvent" class="clearBtn">检查更新</span>
         <span @click="clearDBEvent" class="clearBtn">软件重置</span>
         <span @click="changePasswordEvent" class="clearBtn">设置密码</span>
         <div class="clearTips">
@@ -315,34 +314,6 @@
         </span>
       </el-dialog>
     </div>
-    <div>
-      <!-- 代理设置界面 -->
-      <!-- <el-dialog :visible.sync="show.proxyDialog" :append-to-body="true" @close="closeDialog" width="400px">
-        <el-form label-width="50px" label-position="left" size="small">
-          <el-form-item label="协议: " prop='scheme'>
-            <el-col :span="15">
-              <el-select v-model="proxy.scheme" placeholder="请选择协议类型">
-                <el-option label="http" value="http"></el-option>
-                <el-option label="socks5" value="socks5"></el-option>
-              </el-select>
-            </el-col>
-          </el-form-item>
-          <el-form-item label="地址: " prop='url'>
-            <el-col :span="15">
-              <el-input v-model="proxy.url" placeholder="地址" />
-            </el-col>
-            <el-col class="line" :span="2" style="text-align: center;">:</el-col>
-            <el-col :span="7">
-              <el-input v-model="proxy.port" placeholder="端口" width="80px" />
-            </el-col>
-          </el-form-item>
-        </el-form>
-        <span slot="footer" class="dialog-footer">
-          <el-button @click="closeDialog">取消</el-button>
-          <el-button type="primary" @click="proxyConfirm">确定</el-button>
-        </span>
-      </el-dialog> -->
-    </div>
     <div class="update" v-if="updateInfo.showUpdate">
       <div class="wrapper">
         <div class="body">
@@ -371,7 +342,6 @@ import { writeText } from "@tauri-apps/api/clipboard";
 import { open } from "@tauri-apps/api/shell";
 import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
 import { listen } from "@tauri-apps/api/event";
-import { getVersion } from "@tauri-apps/api/app";
 import { ElMessage } from "element-plus";
 import { _ } from "lodash";
 import bcrypt from "bcryptjs";
@@ -408,6 +378,7 @@ export default defineComponent({
       total: 0,
       downloaded: 0,
       showUpdate: false,
+      cancelUpdate: false,
     });
 
     const colors = [
@@ -438,13 +409,6 @@ export default defineComponent({
       settingInfo.checkPasswordDialog = false
       settingInfo.changePasswordDialog = false
       settingInfo.configDefaultParseUrlDialog = false
-      // if (this.show.proxyDialog) {
-      //   this.show.proxyDialog = false
-      //   this.setting.proxy.type = 'none'
-      //   await this.updateSettingEvent()
-      //   this.$message.info('取消使用代理')
-      //   zy.proxy()
-      // }
       settingInfo.inputPassword = ''
     }
     
@@ -542,10 +506,14 @@ export default defineComponent({
     }
 
     const closeUpdate = () => {
+      updateInfo.total = 0;
+      updateInfo.downloaded = 0;
+      updateInfo.cancelUpdate = true;
       updateInfo.showUpdate = false
     }
 
     const startUpdate = () => {
+      updateInfo.cancelUpdate = false;
       installUpdate().then(
         () => {
           ElMessage.success("更新成功");
@@ -574,10 +542,8 @@ export default defineComponent({
           } else {
             updateInfo.body = "##已经是最新的版本";
           }
-        },
-        (e) => {
+        }, (e) => {
           updateInfo.body = e.toString();
-          ElMessage.error(e.toString());
         }
       );
       if (unlisten.value === 0) {
@@ -586,6 +552,9 @@ export default defineComponent({
             eventId.value = e.id;
           }
           if (e.id === eventId.value) {
+            if (updateInfo.cancelUpdate) {
+              throw new Exception("取消更新");
+            }
             updateInfo.total = e.payload.contentLength;
             updateInfo.downloaded += e.payload.chunkLength;
           }
@@ -624,21 +593,6 @@ export default defineComponent({
   },
 });
 // export default {
-//   data () {
-//     return {
-//       shortcutList: [],
-//       show: {
-//         proxy: false,
-//         proxyDialog: false,
-//       },
-//       proxy: {
-//         type: '',
-//         scheme: '',
-//         url: '',
-//         port: ''
-//       },
-//     }
-//   },
 //   methods: {
 //     getSetting () {
 //       setting.find().then(res => {
@@ -646,19 +600,6 @@ export default defineComponent({
 //         this.setting = this.d
 //         if (!this.setting.defaultParseURL) this.configDefaultParseURL()
 //       })
-//     },
-//     getShortcut () {
-//       shortcut.all().then(res => {
-//         this.shortcutList = res
-//       })
-//     },
-//     async clearCache () {
-//       const win = remote.getCurrentWindow()
-//       const ses = win.webContents.session
-//       const size = await ses.getCacheSize() / 1024 / 1024
-//       const mb = size.toFixed(2)
-//       await ses.clearCache()
-//       this.$message.success(`清除缓存成功, 共清理 ${mb} MB`)
 //     },
 //     async resetDefaultParseURL () {
 //       this.setting.defaultParseURL = 'https://jx.bpba.cc/?v='
@@ -677,32 +618,10 @@ export default defineComponent({
 //         this.updateSettingEvent()
 //       })
 //     },
-//     async changeProxyType (e) {
-//       this.d.proxy.type = e
-//       if (e === 'manual') {
-//         this.show.proxyDialog = true
-//         this.proxy.scheme = this.setting.proxy.scheme
-//         this.proxy.url = this.setting.proxy.url
-//         this.proxy.port = this.setting.proxy.port
-//       }
-//       await this.updateSettingEvent()
-//       this.show.proxy = false
-//       zy.proxy()
-//     },
-//     async proxyConfirm () {
-//       this.d.proxy.scheme = this.proxy.scheme
-//       this.d.proxy.url = this.proxy.url
-//       this.d.proxy.port = this.proxy.port
-//       await this.updateSettingEvent()
-//       this.show.proxyDialog = false
-//       zy.proxy()
-//       this.$message.info('开始使用代理')
-//     },
 //   },
 //   created () {
 //     this.getSetting()
 //     this.getShortcut()
-//     this.checkUpdate()
 //   }
 // }
 </script>
