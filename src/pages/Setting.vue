@@ -240,6 +240,7 @@
         </div>
       </div>
       <div class="clearDB">
+        <span @click="clearDBEvent" class="clearBtn">检查更新</span>
         <span @click="clearDBEvent" class="clearBtn">软件重置</span>
         <span @click="changePasswordEvent" class="clearBtn">设置密码</span>
         <div class="clearTips">
@@ -342,31 +343,39 @@
         </span>
       </el-dialog> -->
     </div>
-    <!-- <div class="update" v-if="update.show">
+    <div class="update" v-if="updateInfo.showUpdate">
       <div class="wrapper">
         <div class="body">
-          <div class="content" v-html="update.html"></div>
+          <div class="content" v-html="updateBody"></div>
         </div>
         <div class="footer">
+          <el-progress
+            :color="colors"
+            :percentage="percentage"
+            :indeterminate="true"
+          />
           <el-button size="small" @click="closeUpdate">关闭</el-button>
-          <el-button size="small" v-show="update.showDownload" @click="startUpdate">更新</el-button>
-          <el-button size="small" v-show="!update.showDownload && !update.downloaded">正在更新...</el-button>
-          <el-button size="small" v-show="update.downloaded" @click="installUpdate">安装</el-button>
+          <el-button size="small" v-show="updateInfo.downloaded == 0" @click="startUpdate">更新</el-button>
+          <el-button size="small" v-show="updateInfo.downloaded < total">正在更新...</el-button>
+          <el-button size="small" v-show="updateInfo.downloaded > total">安装中...</el-button>
         </div>
       </div>
-    </div> -->
+    </div>
   </div>
 </template>
 <script>
-import { defineComponent, reactive, ref, onMounted, onBeforeMount } from "vue";
+import { defineComponent, reactive, ref, computed, onMounted, onBeforeMount } from "vue";
 import { useCoreStore } from "@/store";
 import { storeToRefs } from "pinia";
 import { writeText } from "@tauri-apps/api/clipboard";
 import { open } from "@tauri-apps/api/shell";
+import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
+import { listen } from "@tauri-apps/api/event";
 import { getVersion } from "@tauri-apps/api/app";
 import { ElMessage } from "element-plus";
 import { _ } from "lodash";
 import bcrypt from "bcryptjs";
+import {marked} from 'marked';
 import {
   Close
 } from "@element-plus/icons-vue";
@@ -391,6 +400,23 @@ export default defineComponent({
       inputPassword: "",
       action: "",
     });
+
+    const unlisten = ref(0);
+    const eventId = ref(0);
+    const updateInfo = reactive({
+      body: "",
+      total: 0,
+      downloaded: 0,
+      showUpdate: false,
+    });
+
+    const colors = [
+      { color: '#f56c6c', percentage: 20 },
+      { color: '#e6a23c', percentage: 40 },
+      { color: '#5cb87a', percentage: 60 },
+      { color: '#1989fa', percentage: 80 },
+      { color: '#6f7ad3', percentage: 100 },
+    ]
 
     const expShortcut = async () => {
       const arr = [...this.shortcutList];
@@ -511,9 +537,60 @@ export default defineComponent({
       })
     }
 
+    const openUpdate = () => {
+      updateInfo.showUpdate = true
+    }
+
+    const closeUpdate = () => {
+      updateInfo.showUpdate = false
+    }
+
+    const startUpdate = () => {
+      installUpdate().then(
+        () => {
+          ElMessage.success("更新成功");
+        },
+        (e) => {
+          ElMessage.error(e.toString());
+        }
+      )
+    }
+
+    const percentage = computed(() => updateInfo.downloaded/updateInfo.total)
+
+    const updateBody = computed(() => marked.parse(updateInfo.body))
+
     onBeforeMount(() => {
       getSystemConf();
       getPlayerConf();
+    });
+
+    onMounted(() => {
+      checkUpdate().then(
+        (update) => {
+          if (update.shouldUpdate) {
+            updateInfo.showUpdate = true;
+            updateInfo.body = update.manifest.body;
+          } else {
+            updateInfo.body = "##已经是最新的版本";
+          }
+        },
+        (e) => {
+          updateInfo.body = e.toString();
+          ElMessage.error(e.toString());
+        }
+      );
+      if (unlisten.value === 0) {
+        unlisten.value = listen("tauri://update-download-progress", (e) => {
+          if (eventId.value === 0) {
+            eventId.value = e.id;
+          }
+          if (e.id === eventId.value) {
+            updateInfo.total = e.payload.contentLength;
+            updateInfo.downloaded += e.payload.chunkLength;
+          }
+        });
+      }
     });
 
     return {
@@ -536,6 +613,13 @@ export default defineComponent({
       removeR18ClassFilter,
       clearDBEvent,
       confirmedChangePasswordEvent,
+      updateInfo,
+      percentage,
+      colors,
+      openUpdate,
+      closeUpdate,
+      startUpdate,
+      updateBody,
     };
   },
 });
@@ -553,14 +637,6 @@ export default defineComponent({
 //         url: '',
 //         port: ''
 //       },
-//       update: {
-//         find: false,
-//         version: '',
-//         show: false,
-//         html: '',
-//         downloaded: false,
-//         showDownload: true
-//       }
 //     }
 //   },
 //   methods: {
@@ -621,31 +697,6 @@ export default defineComponent({
 //       this.show.proxyDialog = false
 //       zy.proxy()
 //       this.$message.info('开始使用代理')
-//     },
-//     checkUpdate () {
-//       ipcRenderer.send('checkForUpdate')
-//       ipcRenderer.on('update-available', (e, info) => {
-//         this.update.find = true
-//         this.update.version = info.version
-//         this.update.html = info.releaseNotes
-//       })
-//     },
-//     openUpdate () {
-//       this.update.show = true
-//     },
-//     closeUpdate () {
-//       this.update.show = false
-//     },
-//     startUpdate () {
-//       this.update.showDownload = false
-//       ipcRenderer.send('downloadUpdate')
-//       ipcRenderer.on('update-downloaded', () => {
-//         this.update.downloaded = true
-//         this.$message.success('更新已下载完成！Mac用户须手动点击“安装”，其它系统会在退出后自动安装')
-//       })
-//     },
-//     installUpdate () {
-//       ipcRenderer.send('quitAndInstall')
 //     },
 //   },
 //   created () {
@@ -745,23 +796,6 @@ export default defineComponent({
           width: 100%;
           text-align: center;
         }
-      }
-    }
-  }
-  .qrcode {
-    width: 100%;
-    padding-left: 20px;
-    margin-top: 20px;
-    margin-bottom: 20px;
-    .qrcode-box {
-      display: flex;
-      justify-content: flex-start;
-      margin-top: 10px;
-      .qrcode-item {
-        width: auto;
-        height: 300px;
-        margin-right: 20px;
-        border-radius: 2px;
       }
     }
   }

@@ -18,7 +18,6 @@ pub fn init(app: &mut App) -> std::result::Result<(), Box<dyn std::error::Error>
       .disable_file_drop_handler()
       .inner_size(app_conf2.systemConf.mainWidth, app_conf2.systemConf.mainHeight)
       .center()
-      .decorations(false)
       .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.58".into());
 
     #[cfg(target_os = "macos")]
@@ -26,6 +25,10 @@ pub fn init(app: &mut App) -> std::result::Result<(), Box<dyn std::error::Error>
       main_win = main_win
         .title_bar_style(app_conf2.clone().titlebar())
         .hidden_title(true);
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+      main_win = main_win.decorations(false);
     }
 
     let main = main_win.build().unwrap();

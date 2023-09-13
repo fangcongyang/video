@@ -815,7 +815,7 @@ export default defineComponent({
     }
 
     const otherItemEvent = (e) => {
-      playInfo.value.playType = "movies";
+      playInfo.value.playType = "movie";
       // 打开当前播放的剧集index, 定位到当前的时间
       playInfo.value.movie = {
         siteKey: e.site.key,
