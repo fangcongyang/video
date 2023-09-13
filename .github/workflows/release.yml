@@ -1,9 +1,9 @@
 name: Release
  
 on:
-  workflow_dispatch:
-  release:
-    types: [published]
+  push:
+    branches: [ master ]
+    tags-ignore: [ updater ]
  
 jobs:
   release:
