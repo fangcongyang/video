@@ -25,7 +25,7 @@ const updateData = {
   }
 };
  
-const octokit = getOctokit(process.env.GITHUB_TOKEN);
+const octokit = getOctokit(process.env.github_token);
 const options = { owner: context.repo.owner, repo: context.repo.repo };
  
 const { data: release } = await octokit.rest.repos.getLatestRelease(options);
