@@ -21,8 +21,11 @@ jobs:
             arch: aarch64
             rust_target: aarch64-apple-darwin
           - os: windows-latest
-            arch: x86_64
-            rust_target: x86_64-pc-windows-msvc
+            target: x86_64-pc-windows-msvc
+            toolchain: stable-x86_64-pc-windows-msvc
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            toolchain: stable-i686-pc-windows-msvc
     runs-on: ${{ matrix.config.os }}
     steps:
       - name: Checkout repository
@@ -58,19 +61,32 @@ jobs:
           releaseName: v__VERSION__
   update:
     needs: release
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-  
-      - name: Install Node
-        uses: actions/setup-node@v1
+      - uses: actions/checkout@v3
+
+      - uses: pnpm/action-setup@v2
+        name: Install pnpm
+        id: pnpm-install
         with:
-          node-version: 16
-  
-      - run: yarn
-  
-      - name: Create Update
-        run: yarn update
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          version: 7
+          run_install: false
+
+      - name: Install Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: Updater JSON
+        run: pnpm updater --token=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy install.json
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./updater
+
+      - name: Query version number
+        run: echo "version=${GITHUB_REF:11}" >> $GITHUB_ENV

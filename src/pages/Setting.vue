@@ -321,14 +321,15 @@
         </div>
         <div class="footer">
           <el-progress
+            v-show="updateInfo.downloaded != 0"
             :color="colors"
             :percentage="percentage"
             :indeterminate="true"
           />
           <el-button size="small" @click="closeUpdate">关闭</el-button>
           <el-button size="small" v-show="updateInfo.downloaded == 0" @click="startUpdate">更新</el-button>
-          <el-button size="small" v-show="updateInfo.downloaded < total">正在更新...</el-button>
-          <el-button size="small" v-show="updateInfo.downloaded > total">安装中...</el-button>
+          <el-button size="small" v-show="updateInfo.downloaded < updateInfo.total">正在更新...</el-button>
+          <el-button size="small" v-show="updateInfo.downloaded > updateInfo.total">安装中...</el-button>
         </div>
       </div>
     </div>
