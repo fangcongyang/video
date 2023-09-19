@@ -29,6 +29,8 @@ export const useCoreStore = defineStore('core', {
           mainHeight: 720.0,
           shortcutModified: false,
           encryptedPassword: "",
+          downloadSavePath: "",
+          ffmpegPath: "",
         },
         playerConf: {
           volume: 0.6,
@@ -39,11 +41,15 @@ export const useCoreStore = defineStore('core', {
         shortcutList: [],
         shiftDown: false,
         playInfo: {
-          playType: "movie",
+          // iptv onlineMovie localMovie
+          playType: "onlineMovie",
           isLive: false,
           name: "",
           iptv: {
             channelGroupId: 0,
+          },
+          download: {
+            downloadId: 0,
           },
           movie: {
             siteKey: "",
@@ -51,6 +57,7 @@ export const useCoreStore = defineStore('core', {
             index: 0,
             videoFlag: "",
             onlineUrl: "",
+            // localFile 本地文件 local 本地在线 online iframe网页
             playMode: "local",
           }
         },
@@ -60,11 +67,14 @@ export const useCoreStore = defineStore('core', {
 
       resetPlayInfo() {
         this.playInfo = {
-          playType: "movie",
+          playType: "onlineMovie",
           isLive: false,
           name: "",
           iptv: {
             channelGroupId: 0,
+          },
+          download: {
+            downloadId: 0,
           },
           movie: {
             siteKey: "",

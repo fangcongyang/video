@@ -42,12 +42,5 @@ pub fn init(app: &mut App) -> std::result::Result<(), Box<dyn std::error::Error>
 
   });
 
-  // auto_update
-  let auto_update = app_conf.get_auto_update();
-  if auto_update != "disable" {
-    info!("run_check_update");
-    // utils::run_check_update(app, auto_update == "silent", None);
-  }
-
   Ok(())
 }

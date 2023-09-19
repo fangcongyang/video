@@ -39,19 +39,12 @@ impl Cache {
 }
 
 lazy_static! {
-    pub static ref CACHE: Mutex<Cache> = Mutex::new(Cache::new(1));
+    pub static ref CACHE: Mutex<Cache> = Mutex::new(Cache::new(10));
 }
 
 
 pub fn init() {
-    let path = utils::app_root();
-    let output = path.join("data").join("video.db");
-    let prefix = output.parent().unwrap();
-    create_dir_all(prefix).unwrap();
-    if !utils::exists(&output) {
-        File::create(&output).unwrap();
-    }
-    let video_db = Connection::open(output).unwrap();
+    let video_db = get_db_conn();
     CACHE.lock().unwrap().put(DBNAME.into(), video_db);
     let app_conf = AppConf::read();
     if !app_conf.isInitDatabase {
@@ -61,6 +54,17 @@ pub fn init() {
         .amend(serde_json::json!({ "isInitDatabase" : true }))
         .write();
     }
+}
+
+pub fn get_db_conn() -> Connection {
+    let path = utils::app_root();
+    let output = path.join("data").join("video.db");
+    let prefix = output.parent().unwrap();
+    create_dir_all(prefix).unwrap();
+    if !utils::exists(&output) {
+        File::create(&output).unwrap();
+    }
+    Connection::open(output).unwrap()
 }
 
 fn init_database() {
@@ -171,14 +175,15 @@ fn init_database() {
      // 下载信息表
      video_db.execute(
         "create table if not exists download_info (
-            id TEXT(32) PRIMARY KEY NOT NULL , --主键id
+            id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL , --主键id
             movie_name TEXT(50) NOT NULL  , --视频名称
             url TEXT(500) NOT NULL  , --视频下载地址
             sub_title_name TEXT(50) NOT NULL  , --子标题名称，连续剧集数名称
             status TEXT(20) NOT NULL  , --状态
             download_count INTEGER  , --下载分片总数
             count INTEGER  , --分片总数
-            parent_id TEXT(32) NOT NULL  --父视频id 0为顶级
+            parent_id TEXT(32) NOT NULL , --父视频id 0为顶级
+            download_status TEXT(20) NOT NULL  --下载状态
         )",
         (),
     ).unwrap();

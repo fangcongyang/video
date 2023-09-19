@@ -43,6 +43,7 @@
     "@types/qs": "^6.9.7",
     "@types/validator": "^13.7.17",
     "@vitejs/plugin-vue": "^4.0.0",
+    "@vitejs/plugin-vue-jsx": "^3.0.2",
     "fast-glob": "^3.3.0",
     "node-fetch": "^3.3.2",
     "sass": "^1.63.4",

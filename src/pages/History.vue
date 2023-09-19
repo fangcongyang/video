@@ -293,11 +293,11 @@ import moviesApi from "@/api/movies";
 import { useCoreStore } from "@/store";
 import { useMovieStore } from "@/store/movie";
 import { useHistoryStore } from "@/store/history";
+import { useDownloadStore } from "@/store/download";
 import { storeToRefs } from "pinia";
 import { _ } from "lodash";
 import { open, save } from "@tauri-apps/api/dialog";
 import { readTextFile, writeTextFile } from "@tauri-apps/api/fs";
-import { writeText } from "@tauri-apps/api/clipboard";
 import { invoke } from "@tauri-apps/api/tauri";
 import { Waterfall } from "vue-waterfall-plugin-next";
 import "vue-waterfall-plugin-next/dist/style.css";
@@ -326,6 +326,9 @@ export default defineComponent({
     const { refreshHistoryList } = historyStore;
     const { historyList, historyAreas, historyTypes } =
       storeToRefs(historyStore);
+
+    const downloadStore = useDownloadStore();
+    const { downloadMovie } = downloadStore; 
 
     const historyTableRef = ref();
 
@@ -477,13 +480,14 @@ export default defineComponent({
       if (e.hasUpdate) {
         clearHasUpdateFlag(e);
       }
-      playInfo.value.playType = "movie";
+      playInfo.value.playType = "onlineMovie";
       playInfo.value.name = e.name;
       playInfo.value.movie.siteKey = e.siteKey;
       playInfo.value.movie.ids = e.ids;
       playInfo.value.movie.index = e.index;
       playInfo.value.movie.onlinePlay = e.onlinePlay;
       playInfo.value.movie.videoFlag = e.videoFlag;
+      playInfo.value.movie.playMode = "local";
       view.value = "Play";
     };
 
@@ -542,7 +546,7 @@ export default defineComponent({
     const updateEvent = async (his) => {
       try {
         moviesApi
-          .detail(getSiteByKey(his.siteKey, 2), his.ids)
+          .detail(getSiteByKey(his.siteKey), his.ids)
           .then(async (newDetail) => {
             if (his.detail.last !== newDetail.last) {
               his.hasUpdate = "1";
@@ -593,19 +597,7 @@ export default defineComponent({
     };
 
     const downloadEvent = (history) => {
-      moviesApi
-        .download(
-          getSiteByKey(history.siteKey, 2),
-          history.ids,
-          history.videoFlag
-        )
-        .then(async (res) => {
-          await writeText(res.downloadUrls);
-          ElMessage.success(res.info);
-        })
-        .catch((err) => {
-          ElMessage.error(err.info);
-        });
+      downloadMovie(getSiteByKey(history.siteKey), history.ids);
     };
 
     const deleteEvent = async (history) => {

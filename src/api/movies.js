@@ -1,6 +1,7 @@
 import fetch from './fetch';
 import { XMLParser } from 'fast-xml-parser';
 import { load } from 'cheerio';
+import { getUrlType } from '@/business/play';
 
 const parsetConfig = { // XML 转 JSON 配置
   trimValues: true,
@@ -324,7 +325,7 @@ export default  {
     download (site, id, videoFlag) {
         return new Promise((resolve, reject) => {
             let info = ''
-            let downloadUrls = ''
+            let downloadUrls = []
             if (site.download) {
                 let params = {
                     ac: "videolist",
@@ -339,7 +340,7 @@ export default  {
                     const type = Object.prototype.toString.call(dd)
                     if (type === '[object Array]') {
                         for (const i of dd) {
-                        downloadUrls = i._t.replace(/\$+/g, '$').split('#').map(e => encodeURI(e.includes('$') ? e.split('$')[1] : e)).join('\n')
+                            downloadUrls = i._t.replace(/\$+/g, '$').split('#').map(e => encodeURI(e.includes('$') ? e.split('$')[1] : e)).join('\n')
                         }
                     } else {
                         downloadUrls = dd._t.replace(/\$+/g, '$').split('#').map(e => encodeURI(e.includes('$') ? e.split('$')[1] : e)).join('\n')
@@ -356,16 +357,24 @@ export default  {
                 })
             } else {
                 this.detail(site, id).then(res => {
+                    console.log(res)
                     const dl = res.fullList.find((e, index) => e.flag + '-' + index === videoFlag) || res.fullList[0]
                     for (const i of dl.list) {
                         const url = encodeURI(i.includes('$') ? i.split('$')[1] : i)
-                        downloadUrls += (url + '\n')
+                        if (getUrlType(url) != 'm3u8') {
+                            reject({ info: "不支持的下载类型" })
+                        }
+                        downloadUrls.push({
+                            name: res.name,
+                            subTitleName: i.split('$')[0],
+                            url: url,
+                        })
                     }
                     if (downloadUrls) {
                         info = '视频源链接已复制, 快去下载吧!'
                         resolve({ downloadUrls: downloadUrls, info: info })
                     } else {
-                        throw new Error()
+                        reject({ info: "下载链接不存在" })
                     }
                 }).catch((err) => {
                     err.info = '无法获取到下载链接，请通过播放页面点击“调试”按钮获取'

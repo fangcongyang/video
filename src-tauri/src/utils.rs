@@ -31,6 +31,10 @@ pub fn exists(path: &Path) -> bool {
     Path::new(path).exists()
 }
 
+// pub fn path_exists_str(path_str: &str) -> bool {
+//     Path::new(path_str).exists()
+// }
+
 pub fn create_file(path: &Path) -> Result<File> {
     if let Some(p) = path.parent() {
       fs::create_dir_all(p)?
@@ -50,4 +54,19 @@ pub fn mkdir<P: AsRef<Path>>(path: P) {
 
 pub fn get_pinyin_first_letter(name: &str) -> String {
     to_pinyin_vec(name, Pinyin::first_letter).join("")
+}
+
+#[cfg(not(target_os = "windows"))]
+pub fn get_path_name<P: AsRef<Path>>(p: P) -> String {
+    p.as_ref().display().to_string()
+}
+#[cfg(target_os = "windows")]
+pub fn get_path_name<P: AsRef<Path>>(p: P) -> String {
+    const VERBATIM_PREFIX: &str = r#"\\?\"#;
+    let p = p.as_ref().display().to_string();
+    if p.starts_with(VERBATIM_PREFIX) {
+        p[VERBATIM_PREFIX.len()..].to_string().replace("\\", "/")
+    } else {
+        p.replace("\\", "/")
+    }
 }

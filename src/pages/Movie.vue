@@ -466,7 +466,7 @@ import { _ } from "lodash";
 import { Waterfall } from "vue-waterfall-plugin-next";
 import "vue-waterfall-plugin-next/dist/style.css";
 import ImageLazy from "@/components/ImageLazy.vue";
-import { downloadEvent } from "@/business/movie";
+import { useDownloadStore } from "@/store/download";
 import doubanApi from "@/api/douban";
 import ContextMenu from '@imengyu/vue3-context-menu';
 import { useDark } from "@vueuse/core";
@@ -571,6 +571,9 @@ export default defineComponent({
 
     const coreStore = useCoreStore();
     const { view, playInfo } = storeToRefs(coreStore);
+
+    const downloadStore = useDownloadStore();
+    const { downloadMovie } = downloadStore; 
 
     const movieStore = useMovieStore();
     const {
@@ -832,6 +835,10 @@ export default defineComponent({
       };
     };
 
+    const downloadEvent = () => {
+      downloadMovie(getSiteByKey(detail.value.siteKey), detail.value.ids);
+    };
+    
     const infiniteHandler = _.debounce(() => {
       const key = movieInfo.currentSite.key;
       let typeTid = movieInfo.classType.id;

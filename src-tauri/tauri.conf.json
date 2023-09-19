@@ -13,6 +13,10 @@
   "tauri": {
     "allowlist": {
       "all": true,
+      "protocol": {
+        "all": true,
+        "assetScope": ["**"]
+      },
       "http":{
         "scope":[
           "http://**",

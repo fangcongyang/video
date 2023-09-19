@@ -5,7 +5,7 @@ use std::{collections::BTreeMap, path::PathBuf};
 #[cfg(target_os = "macos")]
 use tauri::TitleBarStyle;
 
-use crate::utils::{app_root, create_file, exists};
+use crate::utils::{app_root, create_file, exists, self};
 
 // pub const BUY_COFFEE: &str = "https://www.buymeacoffee.com/lencx";
 
@@ -36,10 +36,16 @@ pub_struct!(SystemConf {
   mainHeight: f64,
   shortcutModified: bool,
   encryptedPassword: String,
+  downloadSavePath: String,
+  ffmpegPath: String,
 });
 
 impl SystemConf {
   pub fn new() -> Self {
+    let mut path = utils::app_install_root();
+    path.pop();
+    let download_save_path = path.into_os_string().into_string().unwrap();
+    let ffmpeg_path = download_save_path.clone();
     Self { 
       theme: "theme-light".into(),
       saveWindowState: false,
@@ -56,6 +62,8 @@ impl SystemConf {
       mainHeight: 720.0,
       shortcutModified: false,
       encryptedPassword: "".into(),
+      downloadSavePath: download_save_path,
+      ffmpegPath: ffmpeg_path,
     }
   }
 }
@@ -108,8 +116,6 @@ pub_struct!(AppConf {
   systemConf: SystemConf,
   shortcut: bool,
   moviesConf: MoviesConf,
-  // auto update policy: prompt / silent / disable
-  auto_update: String,
   global_shortcut: Option<String>,
 
   // Main Window
@@ -131,7 +137,6 @@ impl AppConf {
     Self {
       systemConf: SystemConf::new(),
       shortcut: true,
-      auto_update: "prompt".into(),
       popup_search: false,
       isinit: true,
       main_close: false,
@@ -215,10 +220,6 @@ impl AppConf {
     } else {
       TitleBarStyle::Overlay
     }
-  }
-
-  pub fn get_auto_update(self) -> String {
-    self.auto_update.to_lowercase()
   }
 
   pub fn get_conf_by_name(self, conf_name: &str) -> String {

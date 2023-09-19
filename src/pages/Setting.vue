@@ -96,6 +96,16 @@
               </ul>
             </div>
           </div>
+          <div class="vop-select">
+            <div class="vs-placeholder vs-noAfter" @click="chooseDownloadSavePath">
+              <span>影片下载路径</span> 
+            </div>
+          </div>
+          <div class="vop-select">
+            <div class="vs-placeholder vs-noAfter" @click="chooseFfmpegPath">
+              <span>ffmpeg路径</span> 
+            </div>
+          </div>
           <div class="vop-array-input">
             <span>主分类</span><el-input v-model="settingInfo.rootClass" placeholder="输入后按回车确认" class="vop-input"
               allow-clear 
@@ -314,12 +324,16 @@
         </span>
       </el-dialog>
     </div>
-    <div class="update" v-if="updateInfo.showUpdate">
-      <div class="wrapper">
-        <div class="body">
-          <div class="content" v-html="updateBody"></div>
-        </div>
-        <div class="footer">
+    
+    <el-dialog
+      v-model="updateInfo.showUpdate"
+      title="检查更新"
+      width="500Px"
+      align-center
+    >
+      <div class="updateBody" v-html="updateBody"></div>
+      <template #footer>
+        <span class="dialog-footer">
           <el-progress
             v-show="updateInfo.downloaded != 0"
             :color="colors"
@@ -327,12 +341,14 @@
             :indeterminate="true"
           />
           <el-button size="small" @click="closeUpdate">关闭</el-button>
-          <el-button size="small" v-show="updateInfo.downloaded == 0" @click="startUpdate">更新</el-button>
-          <el-button size="small" v-show="updateInfo.downloaded < updateInfo.total">正在更新...</el-button>
-          <el-button size="small" v-show="updateInfo.downloaded > updateInfo.total">安装中...</el-button>
-        </div>
-      </div>
-    </div>
+          <div v-if="updateInfo.canUpdate">
+            <el-button size="small" v-show="updateInfo.downloaded == 0" @click="startUpdate">更新</el-button>
+            <el-button size="small" v-show="updateInfo.downloaded < updateInfo.total">正在更新...</el-button>
+            <el-button size="small" v-show="updateInfo.downloaded > updateInfo.total">安装中...</el-button>
+          </div>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 <script>
@@ -341,6 +357,7 @@ import { useCoreStore } from "@/store";
 import { storeToRefs } from "pinia";
 import { writeText } from "@tauri-apps/api/clipboard";
 import { open } from "@tauri-apps/api/shell";
+import { open as fileOpen } from '@tauri-apps/api/dialog';
 import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
 import { listen } from "@tauri-apps/api/event";
 import { ElMessage } from "element-plus";
@@ -350,6 +367,27 @@ import {marked} from 'marked';
 import {
   Close
 } from "@element-plus/icons-vue";
+
+marked.setOptions({
+  renderer: new marked.Renderer(),
+  highlight: function (code, lang) {
+    const hljs = require('highlight.js')
+    const language = hljs.getLanguage(lang) ? lang : 'plaintext'
+    return hljs.highlight(code, { language }).value
+  },
+  langPrefix: 'hljs language-',
+  breaks: false,
+  gfm: true,
+  headerIds: true,
+  headerPrefix: '',
+  mangle: true,
+  pedantic: false,
+  sanitize: false,
+  silent: false,
+  smartLists: false,
+  smartypants: false,
+  xhtml: false
+})
 
 export default defineComponent({
   name: "Setting",
@@ -379,6 +417,7 @@ export default defineComponent({
       total: 0,
       downloaded: 0,
       showUpdate: false,
+      canUpdate: false,
       cancelUpdate: false,
     });
 
@@ -503,7 +542,21 @@ export default defineComponent({
     }
 
     const openUpdate = () => {
-      updateInfo.showUpdate = true
+      checkUpdate().then(
+        (update) => {
+          if (update.shouldUpdate) {
+            updateInfo.showUpdate = true;
+            updateInfo.body = update.manifest.body;
+            updateInfo.canUpdate = true;
+          } else {
+            updateInfo.body = "## 已经是最新的版本";
+            updateInfo.canUpdate = false;
+          }
+        }, (e) => {
+          updateInfo.body = e.toString();
+        },
+        updateInfo.showUpdate = true
+      );
     }
 
     const closeUpdate = () => {
@@ -525,6 +578,28 @@ export default defineComponent({
       )
     }
 
+    const chooseDownloadSavePath = async () => {
+      const selected = await fileOpen({
+        directory: true,
+        defaultPath: systemConf.value.downloadSavePath,
+      });
+      if (selected) {
+        systemConf.value.downloadSavePath = selected;
+        updateSystemConf();
+      }
+    }
+
+    const chooseFfmpegPath = async () => {
+      const selected = await fileOpen({
+        defaultPath: systemConf.value.ffmpegPath,
+        filters: [{ name: "Exe file", extensions: ["exe"] }],
+      });
+      if (selected) {
+        systemConf.value.ffmpegPath = selected;
+        updateSystemConf();
+      }
+    }
+
     const percentage = computed(() => updateInfo.downloaded/updateInfo.total)
 
     const updateBody = computed(() => marked.parse(updateInfo.body))
@@ -535,18 +610,6 @@ export default defineComponent({
     });
 
     onMounted(() => {
-      checkUpdate().then(
-        (update) => {
-          if (update.shouldUpdate) {
-            updateInfo.showUpdate = true;
-            updateInfo.body = update.manifest.body;
-          } else {
-            updateInfo.body = "##已经是最新的版本";
-          }
-        }, (e) => {
-          updateInfo.body = e.toString();
-        }
-      );
       if (unlisten.value === 0) {
         unlisten.value = listen("tauri://update-download-progress", (e) => {
           if (eventId.value === 0) {
@@ -590,6 +653,8 @@ export default defineComponent({
       closeUpdate,
       startUpdate,
       updateBody,
+      chooseDownloadSavePath,
+      chooseFfmpegPath,
     };
   },
 });
@@ -745,28 +810,10 @@ export default defineComponent({
     font-size: 12px;
     color: #ff000066;
   }
-  .update {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(7, 17, 27, 0.7);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    .wrapper {
-      background-color: #fff;
-      padding: 20px 50px 40px;
-      border-radius: 4px;
-      max-width: 500px;
-      max-height: 90%;
-      overflow: auto;
-      .footer {
-        display: flex;
-        justify-content: flex-end;
-      }
-    }
+
+  .updateBody {
+    min-height: 200Px;
+    max-height: 400Px;
   }
 }
 </style>

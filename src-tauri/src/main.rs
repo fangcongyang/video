@@ -9,7 +9,7 @@ mod download;
 
 use conf::AppConf;
 use app::{setup, menu};
-use data::{ site, data_source_con, channel, history, star, search_record, website_parse, shortcut, download_info };
+use data::{ site, data_source_con, channel, history, star, search_record, website_parse, shortcut, download_info::{self} };
 
 fn main() {
     AppConf::read().write();
@@ -56,8 +56,8 @@ fn main() {
         website_parse::cmd::del_website_parse,
         menu::cmd::exist_app,
         download_info::cmd::select_download_info,
-        download_info::cmd::save_download_info,
-        download_info::cmd::download,
+        download_info::cmd::insert_download_infos,
+        download_info::cmd::get_download_by_id,
         shortcut::cmd::select_shortcut,
         shortcut::cmd::save_shortcut,
         data_source_con::cmd::init_database,

@@ -114,11 +114,11 @@ import ImageLazy from '@/components/ImageLazy.vue';
 import SvgIcon from '@/components/SvgIcon.vue';
 import { useCoreStore } from "@/store";
 import { useMovieStore } from "@/store/movie";
+import { useDownloadStore } from "@/store/download";
 import { storeToRefs } from 'pinia';
 import { invoke } from "@tauri-apps/api/tauri";
 import moviesApi from '@/api/movies';
 import doubanApi from '@/api/douban';
-import { downloadEvent } from '@/business/movie';
 import { _ } from 'lodash';
 
 export default defineComponent({
@@ -135,6 +135,9 @@ export default defineComponent({
     const movieStore = useMovieStore();
     const { getSiteByKey, getMoviesDetailCacheByKey } = movieStore;
     const { movieDetailCache, detail, movieInfo } = storeToRefs(movieStore);
+
+    const downloadStore = useDownloadStore();
+    const { downloadMovie } = downloadStore; 
 
     const detailInfo = reactive({
       loading: false,
@@ -188,7 +191,7 @@ export default defineComponent({
       const year = info.year
       info.rate = await doubanApi.doubanRate(name, year);
       const recommendations = await doubanApi.doubanRecommendations(name, year);
-      const siteInfo = getSiteByKey(detail.value.siteKey, 2);
+      const siteInfo = getSiteByKey(detail.value.siteKey);
       if (recommendations) {
         info.recommendations = []
         recommendations.forEach(element => {
@@ -328,6 +331,10 @@ export default defineComponent({
         ElMessage.success('收藏成功');
       }
     }
+
+    const downloadEvent = () => {
+      downloadMovie(getSiteByKey(detail.value.siteKey), detail.value.ids);
+    };
 
     onMounted(() => {
       getDetailInfo();

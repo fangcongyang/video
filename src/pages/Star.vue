@@ -295,7 +295,6 @@ import ImageLazy from "@/components/ImageLazy.vue";
 import { invoke } from "@tauri-apps/api";
 import Sortable from "sortablejs";
 import { ElMessage } from "element-plus";
-import { downloadEvent } from "@/business/movie";
 import { Upload, Download, Delete, Refresh } from "@element-plus/icons-vue";
 import ContextMenu from "@imengyu/vue3-context-menu";
 import { useDark } from "@vueuse/core";
@@ -546,6 +545,8 @@ export default defineComponent({
       await invoke("del_star", { id: star.id });
       refreshStars();
     };
+
+    const downloadEvent = (star) => {}
 
     const toggleViewMode = () => {
       systemConf.value.starViewMode =
