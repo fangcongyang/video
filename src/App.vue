@@ -21,7 +21,9 @@
 <script>
 import { useCoreStore } from "@/store";
 import { useMovieStore } from "@/store/movie";
-import { defineComponent, onMounted, onBeforeMount, watch } from "vue";
+import { useDownloadStore } from "@/store/download";
+import { DownloadBus } from "@/business/download";
+import { defineComponent, onMounted, onBeforeMount, watch, onBeforeUnmount, ref } from "vue";
 import Aside from "@/components/Aside.vue";
 import { storeToRefs } from "pinia";
 import WinTool from "@/components/WinTool.vue";
@@ -35,6 +37,7 @@ import Setting from "@/pages/Setting.vue";
 import EditSites from "@/pages/EditSites.vue";
 import Download from "@/pages/Download.vue";
 import { useDark, useToggle } from "@vueuse/core";
+import { _ } from "lodash";
 
 export default defineComponent({
   components: {
@@ -61,6 +64,11 @@ export default defineComponent({
     const isDark = useDark();
     const toggleDark = useToggle(isDark);
 
+    const downloadWebsocketNum = ref(2);
+
+    const downloadStore = useDownloadStore();
+    const { downloadList } = storeToRefs(downloadStore);
+
     const initTheme = () => {
       if (systemConf.value.theme == "theme-dark") {
         isDark.value = false;
@@ -69,6 +77,19 @@ export default defineComponent({
       }
       toggleDark();
     }
+
+    const initDownloadWebsocket = () => {
+      for (var i = 0; i < downloadWebsocketNum.value; i++) {
+        const downloadBus = new DownloadBus();
+        downloadBus.updateDownloadInfoEvent = (download) => {
+          let downloading = _.find(downloadList.value, { 'id': download.id});
+          downloading.count = download.count;
+          downloading.downloadCount = download.download_count;
+          downloading.status = download.status;
+          downloading.downloadStatus = download.download_status;
+        }
+      }
+    };
 
     onBeforeMount(async () => {
       await getSystemConf();
@@ -82,7 +103,12 @@ export default defineComponent({
       addEventListener("keyup", (event) => {
         if (event.key === 16) shiftDown.value = false;
       });
+      
+      initDownloadWebsocket();
     });
+
+    onBeforeUnmount(() => {
+    })
 
     watch(() => systemConf.value.theme, 
     () => {

@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { invoke } from "@tauri-apps/api/tauri";
-import { _ as lodash } from "lodash";
+import { _ } from "lodash";
 import { useCoreStore } from "./index";
 import moviesApi from '@/api/movies';
 import { ElMessage } from 'element-plus';
@@ -13,7 +13,6 @@ export const useDownloadStore = defineStore("download", {
       },
       downloadId: 0,
       downloadList: [],
-      downloadingMap: new Map(),
     };
   },
   actions: {
@@ -26,22 +25,7 @@ export const useDownloadStore = defineStore("download", {
 
     async refreshDownloadList() {
       let downloadList = await invoke("select_download_info", {});
-      let downloadingMap = new Map();
-      let downloadingList = downloadList.filter(
-        (item) => item.state !== "downloadEnd"
-      );
-      downloadingList.map((item) => {
-        downloadingMap.set(item.id, item);
-      });
       this.downloadList = downloadList;
-      this.downloadingMap = downloadingMap;
-    },
-
-    async refreshDownloadingData() {
-      let downloadingData = await invoke("get_downloading_data", {});
-      for (key in downloadingData) {
-        this.downloadingMap[key]["downloadCount"] = downloadingData[key];
-      }
     },
 
     async downloadMovie(site, ids) {
@@ -88,6 +72,6 @@ export const useDownloadStore = defineStore("download", {
       return this.channelGroupList.filter(
         (item) => item.id == core.playInfo.iptv.channelGroupId
       )[0];
-    },
+    }
   },
 });

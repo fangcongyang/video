@@ -606,7 +606,7 @@ export default defineComponent({
         playChannel(currentChannel.value);
       } else if (playInfo.value.playType === "localMovie") {
         iptvInfo.showChannelGroupList = false;
-        let downloadInfo = await invoke("get_download_by_id", {id: playInfo.value.download.downloadId});
+        let downloadInfo = await invoke("get_download_by_id", {downloadId: playInfo.value.download.downloadId});
         const assetUrl = convertFileSrc(downloadInfo.url);
         player.dp.switchVideo({
           url: assetUrl,

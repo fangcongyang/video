@@ -4,7 +4,7 @@ use aesstream::AesReader;
 use serde::{Serialize, Deserialize};
 use url::Url;
 
-use super::util::download;
+use super::util::download_request;
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub enum KeyType {
@@ -45,14 +45,14 @@ impl M3u8EncryptKey {
                 M3u8EncryptKey {
                     ty: KeyType::Aes128,
                     iv: k.iv.clone(),
-                    content: download(&key_url).await?
+                    content: download_request(&key_url).await?
                 }
             }
             KeyMethod::SampleAES => {
                 M3u8EncryptKey {
                     ty: KeyType::SampleAES,
                     iv: k.iv.clone(),
-                    content: download(&key_url).await?
+                    content: download_request(&key_url).await?
                 }
             }
             _ => panic!("{}", format!("Unsupported key method: {}", &k.method))

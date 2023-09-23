@@ -107,15 +107,7 @@ import {
 import { useCoreStore } from "@/store";
 import { useDownloadStore } from "@/store/download";
 import { storeToRefs } from "pinia";
-import { open, save } from "@tauri-apps/api/dialog";
-import { readTextFile, writeTextFile } from "@tauri-apps/api/fs";
 import { invoke } from "@tauri-apps/api/tauri";
-import {
-  M3uGenerate,
-  M3uParse,
-  validityIptvUrl,
-  determineGroup,
-} from "@/business/iptv";
 import { _ } from "lodash";
 import { Refresh, DataLine, Search } from "@element-plus/icons-vue";
 import Sortable from "sortablejs";
@@ -155,7 +147,7 @@ const columns = [
     key: "subTitleName",
     title: "子标题",
     dataKey: "subTitleName",
-    width: 150,
+    width: 100,
     align: "center",
   },
   {
@@ -227,6 +219,9 @@ const columns = [
         { rowData.downloadStatus == 'downloadSuccess' ? <ElButton size="small" link onClick={() => playEvent(rowData)}>
           播放
         </ElButton> : ''}
+        { rowData.status != 'downloadEnd' ? <ElButton size="small" link onClick={() => retryEvent(rowData)}>
+          重试
+        </ElButton> : ''}
         <ElButton size="small" link type="danger">
           删除
         </ElButton>
@@ -283,22 +278,24 @@ const downloadInfo = reactive({
 });
 
 const coreStore = useCoreStore();
-const { view, systemConf, shiftDown, playInfo } = storeToRefs(coreStore);
+const { view, playInfo } = storeToRefs(coreStore);
 
 const downloadStore = useDownloadStore();
-const { getAllDownload, refreshDownloadList, refreshDownloadingData } =
+const { getAllDownload, refreshDownloadList } =
   downloadStore;
 const { downloadList } = storeToRefs(downloadStore);
 
-const refreshDataInterval = ref();
-
 const playEvent = (downloadInfo) => {
-  console.log(downloadInfo)
   playInfo.value.playType = "localMovie";
   playInfo.value.download.downloadId = downloadInfo.id;
   playInfo.value.movie.playMode = "localFile";
   view.value = "Play";
 };
+
+const retryEvent = async (downloadInfo) => {
+  downloadInfo.downloadStatus = "downloading";
+  await invoke("retry_download", {download: downloadInfo});
+}
 
 const onContextMenu = (e) => {
   e.preventDefault();
@@ -316,12 +313,6 @@ const onContextMenu = (e) => {
   });
 };
 
-const intervalRefreshData = () => {
-  // refreshDataInterval.value = setInterval(async () => {
-  //   refreshDownloadingData();
-  // }, 1000);
-};
-
 watch(
   () => view.value,
   async () => {
@@ -336,11 +327,7 @@ onBeforeMount(() => {
 });
 
 onMounted(() => {
-  intervalRefreshData();
-});
-
-onBeforeUnmount(() => {
-  clearInterval(refreshDataInterval.value);
+  // intervalRefreshData();
 });
 
 // export default defineComponent({

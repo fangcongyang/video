@@ -1,161 +1,83 @@
-use crate::download::m3u8::DownloadInfoContext;
+use crate::conf::AppConf;
 
 use super::data_source_con::*;
 use serde::{Deserialize, Serialize};
-use std::{
-    path::PathBuf,
-    thread,
-    time::Duration,
-};
+use std::path::PathBuf;
+use diesel::prelude::*;
 
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Queryable, Selectable, QueryableByName, Insertable)]
+#[diesel(table_name = crate::schema::download_info)]
 pub struct DownloadInfo {
     pub id: i32,
+    #[diesel(column_name = "movie_name")]
     pub movieName: String,
     pub url: String,
+    #[diesel(column_name = "sub_title_name")]
     pub subTitleName: String,
     // parseSource 解析资源 downloadSlice 下载切片  checkSouce 检查资源完整性 merger 合并资源  downloadEnd 下载完成
     pub status: String,
+    #[diesel(column_name = "download_count")]
     pub downloadCount: i32,
     pub count: i32,
-    pub parentId: String,
     // wait 等待下载 downloading 下载中 downloadFail 下载失败 downloadSuccess 下载成功
+    #[diesel(column_name = "download_status")]
     pub downloadStatus: String,
 }
 
-#[tokio::main]
-pub async fn init() {
-    // 开启一个线程每秒扫描下载进度
-    thread::spawn(move || loop {
-        let conn = get_db_conn();
-        let mut stmt = conn.prepare("SELECT * FROM download_info WHERE status != 'downloadEnd' LIMIT 2").unwrap();
-        let download_infos = stmt.query_map([], |row| {
-                Ok(DownloadInfo {
-                    id: row.get(0)?,
-                    movieName: row.get(1)?,
-                    url: row.get(2)?,
-                    subTitleName: row.get(3)?,
-                    status: row.get(4)?,
-                    downloadCount: row.get(5)?,
-                    count: row.get(6)?,
-                    parentId: row.get(7)?,
-                    downloadStatus: row.get(8)?,
-                })
-            })
-            .unwrap();
-
-        let download_infos: Vec<DownloadInfo> = download_infos
-            .map(|download_info| download_info.unwrap())
-            .collect();
-
-        if !download_infos.is_empty() {
-            let mut download_info2;
-
-            let mut job_handles = Vec::new();
-            for download_info in download_infos {
-                download_info2 = download_info.clone();
-                let job_handle = thread::spawn(move || {
-                    let download_info_context = DownloadInfoContext::new(&mut download_info2);
-                    download_info_context.download();
-                });
-                job_handles.push(job_handle);
-            }
-
-            for job_handle in job_handles {
-                job_handle.join().unwrap();
-            }
-        }
-        thread::sleep(Duration::from_secs(1));
-    });
+pub fn get_download_movie_path(movie_name: &str, sub_title_name: &str) -> PathBuf {
+    let app_conf = AppConf::read();
+    let mut movie_path = PathBuf::from(&app_conf.systemConf.downloadSavePath);
+    movie_path = movie_path.join(&movie_name);
+    movie_path = movie_path.join(&sub_title_name);
+    movie_path
 }
 
 pub mod cmd {
-    use crate::conf::AppConf;
 
     use super::*;
-    use rusqlite::named_params;
+    use diesel::{insert_into, delete};
     use tauri::command;
+    use std::fs;
+    use crate::schema::download_info::dsl::*;
 
     #[command]
     pub fn select_download_info() -> Vec<DownloadInfo> {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-
-        let mut stmt = conn.prepare("SELECT * FROM download_info").unwrap();
-        let download_infos = stmt
-            .query_map([], |row| {
-                Ok(DownloadInfo {
-                    id: row.get(0)?,
-                    movieName: row.get(1)?,
-                    url: row.get(2)?,
-                    subTitleName: row.get(3)?,
-                    status: row.get(4)?,
-                    downloadCount: row.get(5)?,
-                    count: row.get(6)?,
-                    parentId: row.get(7)?,
-                    downloadStatus: row.get(8)?,
-                })
-            })
-            .unwrap();
-        let download_infos: Vec<DownloadInfo> = download_infos
-            .map(|download_info| download_info.unwrap())
-            .collect();
-        download_infos
+        let mut conn = get_once_db_conn();
+        let results = download_info.select(DownloadInfo::as_select()).load::<DownloadInfo>(&mut conn).unwrap();
+        results
     }
 
     #[command]
-    pub fn insert_download_infos(download_infos: Vec<DownloadInfo>) {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        for download_info in download_infos {
-            conn.execute(
-                "INSERT INTO download_info (movie_name, url, sub_title_name, status, download_count, count, parent_id, download_status) 
-                VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                (&download_info.movieName, &download_info.url, &download_info.subTitleName, &download_info.status, &download_info.downloadCount,
-                    &download_info.count, &download_info.parentId, &download_info.downloadStatus),
-            ).unwrap();
-        }
+    pub fn insert_download_infos(download_info_list: Vec<DownloadInfo>) {
+        let mut conn = get_once_db_conn();
+        insert_into(download_info).values(&download_info_list).execute(&mut conn).unwrap();
     }
 
     #[command]
-    pub fn get_download_by_id(id: i32) -> DownloadInfo {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
+    pub fn get_download_by_id(download_id: i32) -> DownloadInfo {
+        let mut conn = get_once_db_conn();
+        let mut download = download_info.filter(id.is(download_id))
+            .select(DownloadInfo::as_select()).first::<DownloadInfo>(&mut conn).unwrap();
+        let sub_title_name1 = &download.subTitleName;
+        let mut movie_path = super::get_download_movie_path(&download.movieName.clone(), sub_title_name1);
+        movie_path = movie_path
+            .join(sub_title_name1.to_owned() + ".mp4");
+        download.url = movie_path.into_os_string().into_string().unwrap();
+        download
+    }
 
-        let mut download_info = conn
-            .query_row(
-                "SELECT * FROM download_info where id = :id",
-                named_params! { ":id": id },
-                |row| {
-                    Ok(DownloadInfo {
-                        id: row.get(0)?,
-                        movieName: row.get(1)?,
-                        url: row.get(2)?,
-                        subTitleName: row.get(3)?,
-                        status: row.get(4)?,
-                        downloadCount: row.get(5)?,
-                        count: row.get(6)?,
-                        parentId: row.get(7)?,
-                        downloadStatus: row.get(8)?,
-                    })
-                },
-            )
-            .unwrap();
-
-        let app_conf = AppConf::read();
-        let mut movie_path = PathBuf::from(&app_conf.systemConf.downloadSavePath);
-        let movie_name = download_info.movieName.clone();
-        movie_path = movie_path.join(&movie_name);
-        let sub_title_name = &download_info.subTitleName;
-        if sub_title_name != "" {
-            movie_path = movie_path
-                .join(&sub_title_name)
-                .join(sub_title_name.to_owned() + ".mp4");
-        } else {
-            movie_path = movie_path.join(movie_name.to_owned() + ".mp4");
-        }
-        download_info.url = movie_path.into_os_string().into_string().unwrap();
-        download_info
+    #[command]
+    pub fn del_download_info(download: DownloadInfo) {
+        let mut conn = get_once_db_conn();
+        fs::remove_dir(super::get_download_movie_path(&download.movieName, &download.subTitleName)).unwrap();
+        delete(download_info.filter(id.eq(&download.id))).execute(&mut conn).unwrap();
+    }
+    
+    pub fn get_download_not_end() -> Vec<DownloadInfo> {
+        let mut conn = get_once_db_conn();
+        let download_info_list = download_info.filter(status.is_not("downloadEnd"))
+            .select(DownloadInfo::as_select()).load(&mut conn).unwrap();
+        download_info_list
     }
 }

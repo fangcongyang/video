@@ -3,7 +3,7 @@ use std::{
     sync:: Mutex,
     fs::{File, create_dir_all}
 };
-use rusqlite::Connection;
+use diesel::{SqliteConnection, Connection};
 use lazy_static::lazy_static;
 use lru::LruCache;
 
@@ -15,7 +15,7 @@ pub const DBNAME: &str = "video";
 
 // 定义一个缓存结构体，包含一个lru缓存和一个容量
 pub struct Cache {
-    lru: LruCache<String, Connection>,
+    lru: LruCache<String, rusqlite::Connection>,
 }
 
 // 实现缓存结构体的方法
@@ -28,12 +28,12 @@ impl Cache {
     }
 
     // 向缓存中插入一个数据库连接，如果缓存已满，淘汰最久未使用的对象
-    fn put(&mut self, id: String, channel: Connection) {
+    fn put(&mut self, id: String, channel: rusqlite::Connection) {
         self.lru.put(id, channel);
     }
 
     // 从缓存中获取一个数据库连接，如果存在，返回Some，否则返回None，并更新最近使用时间
-    pub fn get(&mut self, id: String) -> Option<&Connection> {
+    pub fn get(&mut self, id: String) -> Option<&rusqlite::Connection> {
         self.lru.get(&id)
     }
 }
@@ -54,9 +54,10 @@ pub fn init() {
         .amend(serde_json::json!({ "isInitDatabase" : true }))
         .write();
     }
+    
 }
 
-pub fn get_db_conn() -> Connection {
+pub fn get_db_conn() -> rusqlite::Connection {
     let path = utils::app_root();
     let output = path.join("data").join("video.db");
     let prefix = output.parent().unwrap();
@@ -64,7 +65,18 @@ pub fn get_db_conn() -> Connection {
     if !utils::exists(&output) {
         File::create(&output).unwrap();
     }
-    Connection::open(output).unwrap()
+    rusqlite::Connection::open(output).unwrap()
+}
+
+pub fn get_once_db_conn() -> SqliteConnection {
+    let path = utils::app_root();
+    let output = path.join("data").join("video.db");
+    let prefix = output.parent().unwrap();
+    create_dir_all(prefix).unwrap();
+    if !utils::exists(&output) {
+        File::create(&output).unwrap();
+    }
+    SqliteConnection::establish(&utils::get_path_name(output)).unwrap()
 }
 
 fn init_database() {

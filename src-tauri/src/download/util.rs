@@ -1,7 +1,7 @@
 use url::Url;
 use reqwest::{header::{HeaderMap, HeaderValue, HeaderName}, StatusCode};
 
-pub async fn download(url: &Url) -> anyhow::Result<Vec<u8>> {
+pub async fn download_request(url: &Url) -> anyhow::Result<Vec<u8>> {
     let mut headers = HeaderMap::new();
     headers.insert(HeaderName::from_static("upgrade-insecure-requests"), HeaderValue::from_static("1"));
     let mut base_url = url.clone();

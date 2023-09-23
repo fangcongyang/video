@@ -101,11 +101,6 @@
               <span>影片下载路径</span> 
             </div>
           </div>
-          <div class="vop-select">
-            <div class="vs-placeholder vs-noAfter" @click="chooseFfmpegPath">
-              <span>ffmpeg路径</span> 
-            </div>
-          </div>
           <div class="vop-array-input">
             <span>主分类</span><el-input v-model="settingInfo.rootClass" placeholder="输入后按回车确认" class="vop-input"
               allow-clear 
@@ -589,17 +584,6 @@ export default defineComponent({
       }
     }
 
-    const chooseFfmpegPath = async () => {
-      const selected = await fileOpen({
-        defaultPath: systemConf.value.ffmpegPath,
-        filters: [{ name: "Exe file", extensions: ["exe"] }],
-      });
-      if (selected) {
-        systemConf.value.ffmpegPath = selected;
-        updateSystemConf();
-      }
-    }
-
     const percentage = computed(() => updateInfo.downloaded/updateInfo.total)
 
     const updateBody = computed(() => marked.parse(updateInfo.body))
@@ -654,7 +638,6 @@ export default defineComponent({
       startUpdate,
       updateBody,
       chooseDownloadSavePath,
-      chooseFfmpegPath,
     };
   },
 });

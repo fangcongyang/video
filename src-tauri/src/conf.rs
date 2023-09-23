@@ -37,7 +37,6 @@ pub_struct!(SystemConf {
   shortcutModified: bool,
   encryptedPassword: String,
   downloadSavePath: String,
-  ffmpegPath: String,
 });
 
 impl SystemConf {
@@ -45,7 +44,6 @@ impl SystemConf {
     let mut path = utils::app_install_root();
     path.pop();
     let download_save_path = path.into_os_string().into_string().unwrap();
-    let ffmpeg_path = download_save_path.clone();
     Self { 
       theme: "theme-light".into(),
       saveWindowState: false,
@@ -63,7 +61,6 @@ impl SystemConf {
       shortcutModified: false,
       encryptedPassword: "".into(),
       downloadSavePath: download_save_path,
-      ffmpegPath: ffmpeg_path,
     }
   }
 }

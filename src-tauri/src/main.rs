@@ -6,10 +6,12 @@ mod data;
 mod utils;
 mod conf;
 mod download;
+mod schema;
 
 use conf::AppConf;
 use app::{setup, menu};
 use data::{ site, data_source_con, channel, history, star, search_record, website_parse, shortcut, download_info::{self} };
+use download::file_download;
 
 fn main() {
     AppConf::read().write();
@@ -17,7 +19,8 @@ fn main() {
 
     data_source_con::init();
     shortcut::check_init_shortcut();
-    download_info::init();
+    tauri::async_runtime::spawn(file_download::init());
+    file_download::init_download_queue();
 
     let builder = tauri::Builder::default()
     .plugin(tauri_plugin_positioner::init())
@@ -58,9 +61,12 @@ fn main() {
         download_info::cmd::select_download_info,
         download_info::cmd::insert_download_infos,
         download_info::cmd::get_download_by_id,
+        download_info::cmd::del_download_info,
         shortcut::cmd::select_shortcut,
         shortcut::cmd::save_shortcut,
         data_source_con::cmd::init_database,
+        file_download::cmd::get_download_info_by_queue,
+        file_download::cmd::retry_download,
     ])
     .setup(setup::init);
     builder.system_tray(menu::tray_menu())
