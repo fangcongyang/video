@@ -4,6 +4,7 @@ import { _ } from "lodash";
 import { useCoreStore } from "./index";
 import moviesApi from '@/api/movies';
 import { ElMessage } from 'element-plus';
+import util from '@/util';
 
 export const useDownloadStore = defineStore("download", {
   state: () => {
@@ -44,9 +45,10 @@ export const useDownloadStore = defineStore("download", {
         .then(async (res) => {
           let downloadInfos = [];
           res.downloadUrls.forEach((url) => {
+            let movieName = history ? history.name : url.name;
             downloadInfos.push({
-              id: 0,
-              movieName: history ? history.name : url.name,
+              id: null,
+              movieName: util.trimAll(movieName),
               url: url.url,
               subTitleName: url.subTitleName,
               status: "parseSource",
@@ -56,7 +58,7 @@ export const useDownloadStore = defineStore("download", {
               downloadStatus: "wait",
             });
           });
-          await invoke("insert_download_infos", { downloadInfos: downloadInfos });
+          await invoke("insert_download_infos", { downloadInfoList: downloadInfos });
           this.refreshDownloadList();
           ElMessage.success(res.info);
         })

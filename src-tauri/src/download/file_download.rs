@@ -286,6 +286,7 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                                         download_count1,
                                     );
                                     let mut download_info_context2 = download_info_context.clone();
+                                    download_info_context2.mes_type = "progress".to_string();
                                     download_info_context2.download_count = download_count1;
                                     socket.send(tungstenite::Message::Text(
                                         serde_json::to_string(&download_info_context2).unwrap(),
@@ -370,6 +371,8 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                             download_info_context.download_status = "downloadSuccess".to_string();
                         } else {
                             download_info_context.download_status = "downloadFail".to_string();
+                            let s = String::from_utf8_lossy(&output.stderr);
+                            println!("视频转码失败:{:X?}", s);
                         }
                         let download_info_context1 = download_info_context.clone();
                         update_download_info_by_context(download_info_context);

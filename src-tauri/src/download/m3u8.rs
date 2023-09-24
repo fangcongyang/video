@@ -54,6 +54,8 @@ pub struct DownloadInfoContext {
     pub movie_name: String,
     pub sub_title_name: String,
     pub status: String,
+    //消息类型 progress 进度切换 statusChange
+    pub mes_type: String,
     pub download_status: String,
     pub index_path: PathBuf,
     pub json_path: PathBuf,
@@ -73,11 +75,12 @@ impl DownloadInfoContext {
         let json_path = movie_path.join(sub_title_name.to_owned() + ".json");
         let ts_path = movie_path.join("ts");
         Self {
-            id: download_info.id,
+            id: download_info.id.unwrap(),
             url: Url::parse(&download_info.url).unwrap(),
             movie_name: download_info.movieName.clone(),
             sub_title_name: download_info.subTitleName.clone(),
             status: download_info.status.clone(),
+            mes_type: "statusChange".into(),
             download_status: download_info.downloadStatus.clone(),
             count: download_info.count,
             download_count: download_info.downloadCount,

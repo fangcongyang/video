@@ -9,7 +9,7 @@ use diesel::prelude::*;
 #[derive(Debug, Serialize, Deserialize, Clone, Queryable, Selectable, QueryableByName, Insertable)]
 #[diesel(table_name = crate::schema::download_info)]
 pub struct DownloadInfo {
-    pub id: i32,
+    pub id: Option<i32>,
     #[diesel(column_name = "movie_name")]
     pub movieName: String,
     pub url: String,
@@ -36,10 +36,10 @@ pub fn get_download_movie_path(movie_name: &str, sub_title_name: &str) -> PathBu
 pub mod cmd {
 
     use super::*;
-    use diesel::{insert_into, delete};
+    use diesel::{insert_into, delete, result::Error};
     use tauri::command;
     use std::fs;
-    use crate::schema::download_info::dsl::*;
+    use crate::{schema::download_info::dsl::*, download::file_download::DOWNLOAD_QUEUE};
 
     #[command]
     pub fn select_download_info() -> Vec<DownloadInfo> {
@@ -51,7 +51,23 @@ pub mod cmd {
     #[command]
     pub fn insert_download_infos(download_info_list: Vec<DownloadInfo>) {
         let mut conn = get_once_db_conn();
-        insert_into(download_info).values(&download_info_list).execute(&mut conn).unwrap();
+        let download_infos = conn.transaction::<_, Error, _>(|conn| {
+            let inserted_count = insert_into(download_info)
+                .values(&download_info_list)
+                .execute(conn)?;
+
+            Ok(download_info
+                .order(id.desc())
+                .limit(inserted_count as i64)
+                .load(conn)?
+                .into_iter()
+                .rev()
+                .collect::<Vec<_>>())
+        }).unwrap();
+        let queue = DOWNLOAD_QUEUE.lock().unwrap();
+        for di in download_infos {
+            queue.push(di);
+        }
     }
 
     #[command]
@@ -70,7 +86,7 @@ pub mod cmd {
     #[command]
     pub fn del_download_info(download: DownloadInfo) {
         let mut conn = get_once_db_conn();
-        fs::remove_dir(super::get_download_movie_path(&download.movieName, &download.subTitleName)).unwrap();
+        fs::remove_dir_all(super::get_download_movie_path(&download.movieName, &download.subTitleName)).unwrap();
         delete(download_info.filter(id.eq(&download.id))).execute(&mut conn).unwrap();
     }
     

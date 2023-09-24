@@ -49,11 +49,12 @@ export class DownloadBus {
         this.ws.onmessage = ({ data }) => {
           const dataObj = JSON.parse(data);
           this.downloadRequest.downloadInfo.status = dataObj.status;
+          this.downloadRequest.downloadInfo.download_status = dataObj.download_status;
           this.updateDownloadInfoEvent(dataObj);
           if (dataObj.download_status == "downloadSuccess" || dataObj.download_status == "downloadFail") {
             this.intervalGetDownloadInfo();
           } else {
-            if (dataObj.status == "downloadSlice") {
+            if (dataObj.mes_type == "progress" && dataObj.status == "downloadSlice") {
               this.downloadRequest.downloadInfo.downloadCount = dataObj.download_count;
             } else {
               this.downloadRequest.downloadInfo.count = dataObj.count;

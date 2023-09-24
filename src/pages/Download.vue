@@ -4,68 +4,6 @@
       v-model:show="downloadInfo.contextMenushow"
       :options="downloadInfo.options"
     >
-      <context-menu-item
-        label="批量启用"
-        @click="
-          () => {
-            downloadInfo.batchIsActive = '1';
-            saveBatchEdit();
-          }
-        "
-      >
-        <template #icon>
-          <el-icon><Open /></el-icon>
-        </template>
-      </context-menu-item>
-      <context-menu-item
-        label="批量禁用"
-        @click="
-          () => {
-            downloadInfo.batchIsActive = '0';
-            saveBatchEdit();
-          }
-        "
-      >
-        <template #icon>
-          <el-icon><TurnOff /></el-icon>
-        </template>
-      </context-menu-item>
-      <context-menu-sperator />
-      <context-menu-item label="导出" @click="exportChannels()">
-        <template #icon>
-          <el-icon>
-            <Download />
-          </el-icon>
-        </template>
-      </context-menu-item>
-      <context-menu-item label="导入" @click="importChannels()">
-        <template #icon>
-          <el-icon>
-            <Upload />
-          </el-icon>
-        </template>
-      </context-menu-item>
-      <context-menu-item label="检测" @click="checkAllChannels()">
-        <template #icon>
-          <el-icon>
-            <Refresh />
-          </el-icon>
-        </template>
-      </context-menu-item>
-      <context-menu-item label="在线搜索" @click="showIptvOnlineSearch()">
-        <template #icon>
-          <el-icon>
-            <DataLine />
-          </el-icon>
-        </template>
-      </context-menu-item>
-      <context-menu-item label="删除" @click="removeSelectedChannels()">
-        <template #icon>
-          <el-icon>
-            <Delete />
-          </el-icon>
-        </template>
-      </context-menu-item>
     </context-menu> -->
     <div class="page-body">
       <div class="show-table" id="download-table">
@@ -194,10 +132,8 @@ const columns = [
     key: "downloadCount",
     title: "下载进度",
     cellRenderer: ({ rowData }) => {
-      let percentage = _.ceil(
-        _.divide(rowData.downloadCount, rowData.count) * 100,
-        2
-      );
+      let percentageNum = rowData.count == rowData.count == 0 ? 0.00 : _.divide(rowData.downloadCount, rowData.count) * 100
+      let percentage = _.ceil(percentageNum, 2);
       return (
         <ElProgress
           class=".el-progress--line"
@@ -222,7 +158,7 @@ const columns = [
         { rowData.status != 'downloadEnd' ? <ElButton size="small" link onClick={() => retryEvent(rowData)}>
           重试
         </ElButton> : ''}
-        <ElButton size="small" link type="danger">
+        <ElButton size="small" link type="danger"  onClick={() => removeEvent(rowData)}>
           删除
         </ElButton>
       </>
@@ -295,6 +231,11 @@ const playEvent = (downloadInfo) => {
 const retryEvent = async (downloadInfo) => {
   downloadInfo.downloadStatus = "downloading";
   await invoke("retry_download", {download: downloadInfo});
+}
+
+const removeEvent = async (downloadInfo) => {
+  await invoke("del_download_info", {download: downloadInfo});
+  refreshDownloadList();
 }
 
 const onContextMenu = (e) => {
@@ -387,38 +328,6 @@ onMounted(() => {
 //         return;
 //       }
 //       this.updateDatabase();
-//     };
-
-//     const removeEvent = async (row) => {
-//       if (iptvInfo.checkAllChannelsLoading) {
-//         ElMessage.info("正在检测, 请勿操作.");
-//         return false;
-//       }
-//       try {
-//         if (row.url) {
-//           // tree树形控件节点一旦展开，就不再重新加载节点数据
-//           const ele = channelGroupList.value.find(
-//             (e) => e.id === row.channelGroupId
-//           );
-//           let channelGroup = _.cloneDeep(ele);
-//           _.remove(channelGroup.channels, (channel) => {
-//             return channel.id == row.id;
-//           });
-//           if (channelGroup.channels.length) {
-//             channelGroup.hasChildren =
-//               channelGroup.channels.length > 1 ? "1" : "0";
-//             channelGroup.channels = JSON.stringify(channelGroup.channels);
-//             await invoke("save_channel_group", { channelGroup: channelGroup });
-//           } else {
-//             await invoke("del_channel_group", { id: row.channelGroupId });
-//           }
-//         } else {
-//           await invoke("del_channel_group", { id: row.id });
-//         }
-//         refreshChannelGroupList();
-//       } catch (err) {
-//         ElMessage.warning("删除频道失败, 错误信息: " + err);
-//       }
 //     };
 
 //     const sortByLocaleCompare = (a, b) => {

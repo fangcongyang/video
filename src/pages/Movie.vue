@@ -4,6 +4,19 @@
       v-model:show="movieInfo.contextMenushow"
       :options="movieInfo.options"
     >
+      <context-menu-item :clickClose="false" @click.stop="() => {}" v-if="!movieInfo.showFind">
+        <template #label>
+          <el-input-number
+            v-model="moviesPageInfo.pageCount"
+            :min="1"
+            :max="moviesPageInfo.totalPageCount"
+            size="small"
+            style="width: 180Px;"
+            controls-position="right"
+            @blur="startPageChange"
+          />
+        </template>
+      </context-menu-item>
       <context-menu-group label="地区" :clickClose="false">
         <context-menu-item
           v-for="item in movieInfo.areas"
@@ -781,12 +794,13 @@ export default defineComponent({
     };
 
     const playEvent = async (e) => {
-      playInfo.value.playType = "movie";
+      playInfo.value.playType = "onlineMovie";
       playInfo.value.name = e.name;
       playInfo.value.movie.siteKey = movieInfo.currentSite.key;
       playInfo.value.movie.ids = e.id;
       playInfo.value.movie.index = 0;
       playInfo.value.movie.videoFlag = "";
+      playInfo.value.movie.playMode = "local";
       view.value = "Play";
     };
 
@@ -1086,6 +1100,11 @@ export default defineComponent({
       });
     }
 
+    const startPageChange = () => {
+      moviesPageInfo.value.moviesList = [];
+      infiniteHandler();
+    }
+
     watch(
       () => movieInfo.searchTxt,
       async () => {
@@ -1158,6 +1177,7 @@ export default defineComponent({
       searchResultTableRef,
       onContextMenu,
       areaClick,
+      startPageChange,
     };
   },
 });

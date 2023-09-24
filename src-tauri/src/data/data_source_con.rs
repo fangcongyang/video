@@ -194,7 +194,6 @@ fn init_database() {
             status TEXT(20) NOT NULL  , --状态
             download_count INTEGER  , --下载分片总数
             count INTEGER  , --分片总数
-            parent_id TEXT(32) NOT NULL , --父视频id 0为顶级
             download_status TEXT(20) NOT NULL  --下载状态
         )",
         (),

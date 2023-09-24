@@ -439,6 +439,7 @@ import {
   onBeforeUnmount,
   watch,
   toRefs,
+  nextTick
 } from "vue";
 import { useCoreStore } from "@/store";
 import { useIptvStore } from "@/store/iptv";
@@ -759,16 +760,18 @@ export default defineComponent({
         refreshCurrentHistory();
       }
       if (isOnline) {
-        const iframeElement = document.querySelector("iframe"); // 获取iframe元素
-        iframeElement.addEventListener("fullscreenchange", async (event) => {
-          if (!moviesInfo.iframeFullScreen) {
-            await appWindow.setFullscreen(true);
-          } else {
-            await appWindow.setFullscreen(false);
-            await appWindow.unmaximize();
-          }
-          moviesInfo.iframeFullScreen = !moviesInfo.iframeFullScreen;
-        });
+        nextTick(() => {
+          const iframeElement = document.querySelector("iframe"); // 获取iframe元素
+          iframeElement.addEventListener("fullscreenchange", async (event) => {
+            if (!moviesInfo.iframeFullScreen) {
+              await appWindow.setFullscreen(true);
+            } else {
+              await appWindow.setFullscreen(false);
+              await appWindow.unmaximize();
+            }
+            moviesInfo.iframeFullScreen = !moviesInfo.iframeFullScreen;
+          });
+        })
         currentHistory.value.index = playInfo.value.movie.index;
         currentHistory.value.onlinePlay = playInfo.value.movie.onlineUrl;
         currentHistory.value.updateTime = date.getDateTimeStr();
