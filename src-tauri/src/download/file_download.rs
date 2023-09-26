@@ -4,12 +4,13 @@ use m3u8_rs::{MediaPlaylist, Playlist};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
 use tokio::fs::read_dir;
+use url::Url;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
 use lazy_static::lazy_static;
 use std::{
     net::{TcpListener, TcpStream},
-    path::Path,
+    path::{Path, PathBuf},
     process::Command,
     sync::{atomic::AtomicI32, atomic::Ordering, Arc, Mutex},
     thread,
@@ -26,17 +27,12 @@ use tungstenite::{accept, handshake::HandshakeRole, Error, HandshakeError, Messa
 use crate::{download::{
     m3u8_encrypt_key::{KeyType, M3u8EncryptKey},
     util::download_request,
-}, data::download_info::cmd::get_download_not_end};
+}, data::download_info::{cmd::get_download_not_end, get_download_movie_path}};
 use crate::{
     data::data_source_con::{CACHE, DBNAME},
     utils,
 };
-use crate::{
-    data::download_info::DownloadInfo,
-    download::m3u8::{
-            DownloadInfoContext, DownloadInfoDetail, DownloadInfoQueueDetail, DownloadSourceInfo,
-        },
-};
+use crate::data::download_info::DownloadInfo;
 
 lazy_static! {
     pub static ref DOWNLOAD_QUEUE: Mutex<SegQueue<DownloadInfo>> = Mutex::new(SegQueue::new());
@@ -47,6 +43,89 @@ pub fn init_download_queue() {
     for download_info1 in download_info_list {
         let queue = DOWNLOAD_QUEUE.lock().unwrap();
         queue.push(download_info1);
+    }
+}
+
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DownloadSourceInfo {
+    pub id: i32,
+    pub m3u8_encrypt_key: M3u8EncryptKey,
+    pub download_info_list: Vec<DownloadInfoDetail>,
+}
+
+impl DownloadSourceInfo {
+    pub fn new() -> Self {
+        Self {
+            id: 0,
+            m3u8_encrypt_key: M3u8EncryptKey::default(),
+            download_info_list: [].to_vec(),
+        }
+    }
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DownloadInfoDetail {
+    pub id: usize,
+    pub url: Url,
+    pub file_name: String,
+    pub success: bool,
+}
+
+#[allow(non_snake_case)]
+#[derive(Debug, Clone)]
+pub struct DownloadInfoQueueDetail {
+    pub id: usize,
+    pub url: Url,
+    pub file_name: String,
+    pub m3u8_encrypt_key: Arc<M3u8EncryptKey>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DownloadInfoContext {
+    pub id: i32,
+    pub url: Url,
+    pub count: i32,
+    pub download_count: i32,
+    pub movie_name: String,
+    pub sub_title_name: String,
+    pub status: String,
+    //消息类型 progress 进度切换 statusChange
+    pub mes_type: String,
+    pub download_status: String,
+    pub index_path: PathBuf,
+    pub json_path: PathBuf,
+    pub ts_path: PathBuf,
+}
+
+impl DownloadInfoContext {
+    pub fn new(download_info: &mut DownloadInfo) -> Self {
+        let movie_name = download_info.movie_name.clone();
+        let sub_title_name = &download_info.sub_title_name;
+
+        let movie_path = get_download_movie_path(&movie_name, sub_title_name);
+
+        utils::mkdir(&movie_path);
+
+        let index_path = movie_path.join(sub_title_name.to_owned() + ".txt");
+        let json_path = movie_path.join(sub_title_name.to_owned() + ".json");
+        let ts_path = movie_path.join("ts");
+        Self {
+            id: download_info.id.unwrap(),
+            url: Url::parse(&download_info.url).unwrap(),
+            movie_name: download_info.movie_name.clone(),
+            sub_title_name: download_info.sub_title_name.clone(),
+            status: download_info.status.clone(),
+            mes_type: "statusChange".into(),
+            download_status: download_info.download_status.clone(),
+            count: download_info.count,
+            download_count: download_info.download_count,
+            index_path,
+            json_path,
+            ts_path,
+        }
     }
 }
 

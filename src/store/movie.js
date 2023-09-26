@@ -6,14 +6,6 @@ import { useCoreStore } from './index';
 export const useMovieStore = defineStore('movie', {
     state: () => {
       return {
-        movieInfo: {
-            siteKey: "",
-            ids: "",
-            name: "",
-            index: 0,
-            videoFlag: "",
-            onlineUrl: "",
-        },
         init: {
             siteListInit: false,
             moviesConfInit: false,

@@ -76,15 +76,15 @@ const SelectionCell = ({
 
 const columns = [
   {
-    key: "movieName",
+    key: "movie_name",
     title: "影片名称",
-    dataKey: "movieName",
+    dataKey: "movie_name",
     width: 200,
   },
   {
-    key: "subTitleName",
+    key: "sub_title_name",
     title: "子标题",
-    dataKey: "subTitleName",
+    dataKey: "sub_title_name",
     width: 100,
     align: "center",
   },
@@ -110,9 +110,9 @@ const columns = [
     align: "center",
   },
   {
-    key: "downloadStatus",
+    key: "download_status",
     title: "下载状态",
-    dataKey: "downloadStatus",
+    dataKey: "download_status",
     cellRenderer: ({ cellData: downloadStatus }) => {
       switch (downloadStatus) {
         case "parseSource":
@@ -129,10 +129,10 @@ const columns = [
     align: "center",
   },
   {
-    key: "downloadCount",
+    key: "download_count",
     title: "下载进度",
     cellRenderer: ({ rowData }) => {
-      let percentageNum = rowData.count == rowData.count == 0 ? 0.00 : _.divide(rowData.downloadCount, rowData.count) * 100
+      let percentageNum = rowData.count == 0 ? 0.00 : _.divide(rowData.download_count, rowData.count) * 100
       let percentage = _.ceil(percentageNum, 2);
       return (
         <ElProgress
@@ -152,7 +152,7 @@ const columns = [
     title: "操作",
     cellRenderer: ({ rowData }) => (
       <>
-        { rowData.downloadStatus == 'downloadSuccess' ? <ElButton size="small" link onClick={() => playEvent(rowData)}>
+        { rowData.download_status == 'downloadSuccess' ? <ElButton size="small" link onClick={() => playEvent(rowData)}>
           播放
         </ElButton> : ''}
         { rowData.status != 'downloadEnd' ? <ElButton size="small" link onClick={() => retryEvent(rowData)}>
@@ -228,13 +228,13 @@ const playEvent = (downloadInfo) => {
   view.value = "Play";
 };
 
-const retryEvent = async (downloadInfo) => {
-  downloadInfo.downloadStatus = "downloading";
-  await invoke("retry_download", {download: downloadInfo});
+const retryEvent = async (download) => {
+  download.download_status = "downloading";
+  await invoke("retry_download", {download: download});
 }
 
-const removeEvent = async (downloadInfo) => {
-  await invoke("del_download_info", {download: downloadInfo});
+const removeEvent = async (download) => {
+  await invoke("del_download_info", {download: download});
   refreshDownloadList();
 }
 

@@ -31,15 +31,6 @@
           <span @click="downloadEvent">下载</span>
           <span @click="shareEvent(info, info.index)">分享</span>
           <span @click="doubanLinkEvent">豆瓣</span>
-          <span @click="togglePlayOnlineEvent">
-            <input type="checkbox" v-model="detailInfo.playOnline"> 播放在线高清视频
-          </span>
-          <span>
-            <select v-model="detailInfo.selectedOnlineSite" class="vs-options">
-              <option disabled value="">Please select one</option>
-              <option v-for="(i, j) in detailInfo.onlineSites" :key="j">{{i}}</option>
-            </select>
-          </span>
         </div>
         <div class="desc" v-show="info.des">{{info.des}}</div>
         <div class="m3u8" v-if="detailInfo.videoFullList.length > 1">
@@ -130,11 +121,11 @@ export default defineComponent({
   },
   setup() {
     const coreStore = useCoreStore();
-    const { view, video } = storeToRefs(coreStore);
+    const { view, playInfo } = storeToRefs(coreStore);
 
     const movieStore = useMovieStore();
     const { getSiteByKey, getMoviesDetailCacheByKey } = movieStore;
-    const { movieDetailCache, detail, movieInfo } = storeToRefs(movieStore);
+    const { movieDetailCache, detail } = storeToRefs(movieStore);
 
     const downloadStore = useDownloadStore();
     const { downloadMovie } = downloadStore; 
@@ -145,9 +136,6 @@ export default defineComponent({
       selectedEpisode: 0,
       videoList: [],
       videoFullList: [],
-      onlineSites: ['哔嘀', '素白白', '简影', '极品', '喜欢看', '1080影视'],
-      selectedOnlineSite: '哔嘀',
-      playOnline: false,
       moveOn: 0,
     })
 
@@ -237,44 +225,17 @@ export default defineComponent({
         await invoke("save_history", {history: history})
       }
     }
-
-    const togglePlayOnlineEvent = () => {
-      detailInfo.playOnline = !detailInfo.playOnline
-    }
     
     const playEvent = async (n) => {
-      video.value.playType = "movies";
-      if (!detailInfo.playOnline) {
-        movieInfo.value = {
-          siteKey: detail.value.siteKey,
-          ids: info.id,
-          name: info.name,
-          index: n,
-          videoFlag: detailInfo.videoFlag,
-        }
-        detail.value.show = false;
-        view.value = "Play";
-      } else {
-        const db = await history.find({ site: this.detail.key, ids: this.info.id })
-        if (db) {
-          db.index = n
-          db.detail = this.info
-          history.update(db.id, db)
-        } else {
-          const doc = {
-            site: this.detail.key,
-            ids: this.detail.info.id,
-            name: this.detail.info.name,
-            type: this.detail.info.type,
-            year: this.detail.info.year,
-            index: n,
-            time: '',
-            detail: this.info
-          }
-          history.add(doc)
-        }
-        onlineVideo.playVideoOnline(this.selectedOnlineSite, this.detail.info.name, n)
-      }
+      playInfo.value.playType = "onlineMovie";
+      playInfo.value.name = info.name;
+      playInfo.value.movie.siteKey = detail.value.siteKey;
+      playInfo.value.movie.ids = info.id;
+      playInfo.value.movie.index = n;
+      playInfo.value.movie.videoFlag = detailInfo.videoFlag;
+      playInfo.value.movie.playMode = "local";
+      detail.value.show = false;
+      view.value = "Play";
     }
     
     const playRecommendationEvent = async (e) => {
@@ -303,7 +264,7 @@ export default defineComponent({
     }
     
     const starEvent = async (info) => {
-      const starStr = await invoke("get_star_by_uq", { siteKey: detail.value.siteKey, ids: info.id });
+      const starStr = await invoke("get_star_by_uq", { starSiteKey: detail.value.siteKey, starIds: info.id });
       if (starStr) {
         let star = JSON.parse(starStr);
         star.hasUpdate = star.lastUpdateTime != info.detail.last ? '1' : '0';
@@ -313,7 +274,7 @@ export default defineComponent({
         ElMessage.success('收藏更新成功');
       } else {
         const star = {
-          id: 0,
+          id: null,
           name: info.name,
           ids: info.id.toString(),
           siteKey: detail.value.siteKey,
@@ -347,7 +308,6 @@ export default defineComponent({
       ftName,
       detailEvent,
       updateVideoList,
-      togglePlayOnlineEvent,
       playRecommendationEvent,
       playEvent,
       starEvent,
@@ -355,46 +315,8 @@ export default defineComponent({
     }
   }
 });
-// import onlineVideo from '../lib/site/onlineVideo'
 // export default {
-//   computed: {
-//     share: {
-//       get () {
-//         return this.$store.getters.getShare
-//       },
-//       set (val) {
-//         this.SET_SHARE(val)
-//       }
-//     },
-//   },
 //   methods: {
-//     playVideoOnline (videoName, videoIndex) {
-//       switch (this.selectedOnlineSite) {
-//         case '哔嘀':
-//           onlineVideo.playVideoOnBde4(videoName, videoIndex)
-//           break
-//         case '1080影视':
-//           onlineVideo.playVideoOnK1080(videoName, videoIndex)
-//           break
-//         case '素白白':
-//           onlineVideo.playVideoOnSubaibai(videoName, videoIndex)
-//           break
-//         case '哆咪动漫':
-//           onlineVideo.playVideoOndmdm2020(videoName, videoIndex)
-//           break
-//         case '樱花动漫':
-//           onlineVideo.playVideoOnYhdm(videoName, videoIndex)
-//           break
-//         case '简影':
-//           onlineVideo.playVideoOnSyrme(videoName, videoIndex)
-//           break
-//         case '极品':
-//           onlineVideo.playVideoOnJpysvip(videoName, videoIndex)
-//           break
-//         default:
-//           this.$message.console.error(`不支持该网站：${this.selectedOnlineSite}`)
-//       }
-//     },
 //     shareEvent (info, selectedEpisode) {
 //       this.share = {
 //         show: true,

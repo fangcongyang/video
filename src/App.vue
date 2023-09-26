@@ -84,9 +84,9 @@ export default defineComponent({
         downloadBus.updateDownloadInfoEvent = (download) => {
           let downloading = _.find(downloadList.value, { 'id': download.id});
           downloading.count = download.count;
-          downloading.downloadCount = download.download_count;
+          downloading.download_count = download.download_count;
           downloading.status = download.status;
-          downloading.downloadStatus = download.download_status;
+          downloading.download_status = download.download_status;
         }
       }
     };
@@ -137,7 +137,7 @@ export default defineComponent({
     justify-content: flex-start;
     align-items: flex-start;
     flex-direction: column;
-    padding: 0 20px 20px;
+    padding: 0 20Px 20Px;
   }
 
   .active-page {

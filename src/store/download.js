@@ -1,7 +1,6 @@
 import { defineStore } from "pinia";
 import { invoke } from "@tauri-apps/api/tauri";
 import { _ } from "lodash";
-import { useCoreStore } from "./index";
 import moviesApi from '@/api/movies';
 import { ElMessage } from 'element-plus';
 import util from '@/util';
@@ -48,14 +47,14 @@ export const useDownloadStore = defineStore("download", {
             let movieName = history ? history.name : url.name;
             downloadInfos.push({
               id: null,
-              movieName: util.trimAll(movieName),
+              movie_name: util.trimAll(movieName),
               url: url.url,
-              subTitleName: url.subTitleName,
+              sub_title_name: url.subTitleName,
               status: "parseSource",
-              downloadCount: 0,
+              download_count: 0,
               count: 0,
               parentId: "0",
-              downloadStatus: "wait",
+              download_status: "wait",
             });
           });
           await invoke("insert_download_infos", { downloadInfoList: downloadInfos });
@@ -69,11 +68,5 @@ export const useDownloadStore = defineStore("download", {
     },
   },
   getters: {
-    currentChannel() {
-      const core = useCoreStore();
-      return this.channelGroupList.filter(
-        (item) => item.id == core.playInfo.iptv.channelGroupId
-      )[0];
-    }
   },
 });

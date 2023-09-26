@@ -112,7 +112,7 @@ pub mod cmd {
             ).unwrap();
         } else {
             conn.execute(
-                "UPDATE site SET key = ?1, name = ?2, api = ?3, `group` = ?4, is_active = ?5, status = ?6, position = ?7, in_reverse_order ?8  
+                "UPDATE site SET key = ?1, name = ?2, api = ?3, `group` = ?4, is_active = ?5, status = ?6, position = ?7, in_reverse_order = ?8  
                 WHERE id = ?9",
                 (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position, &site.inReverseOrder, &site.id, ),
             ).unwrap();

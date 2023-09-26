@@ -1,77 +1,50 @@
 use super::data_source_con::*;
 use serde::{Serialize, Deserialize};
+use diesel::prelude::*;
 
-#[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Queryable, Selectable, QueryableByName, Insertable)]
+#[diesel(table_name = crate::schema::website_parse)]
 pub struct WebsiteParse {
-    id: i32,
-    websiteKey: String,
-    websiteParseUrl: String,
+    id: Option<i32>,
+    website_key: String,
+    website_parse_url: String,
+    position: f64,
 }
 
 pub mod cmd {
     use super::*;
-    use rusqlite::{params, named_params};
+    use diesel::{dsl::max, update, insert_into, delete};
     use tauri::command;
+    use crate::schema::website_parse::dsl::*;
 
     #[command]
     pub fn select_website_parse() -> Vec<WebsiteParse> {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        
-        let mut stmt = conn.prepare("SELECT * FROM website_parse").unwrap();
-        let website_parses = stmt.query_map([], |row| {
-            Ok(WebsiteParse {
-                id: row.get(0)?,
-                websiteKey: row.get(1)?,
-                websiteParseUrl: row.get(2)?,
-            })
-        }).unwrap();
-        let website_parses: Vec<WebsiteParse> = website_parses.map(|website_parse| website_parse.unwrap()).collect();
-        website_parses
+        let mut conn = get_once_db_conn();
+        let results = website_parse.select(WebsiteParse::as_select()).load::<WebsiteParse>(&mut conn).unwrap();
+        results
     }
-    
+
     #[command]
-    pub fn get_website_parse_by_key(website_key: &str) -> String {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        
-        let website_parse = conn.query_row("SELECT * FROM website_parse where website_key = :websiteKey", 
-          named_params! { ":websiteKey": website_key, },
-            |row| {
-                Ok(WebsiteParse {
-                    id: row.get(0)?,
-                    websiteKey: row.get(1)?,
-                    websiteParseUrl: row.get(2)?,
-                })
-            });
-        match website_parse { 
-            Ok(s) => { serde_json::to_string(&s).unwrap() } 
-            Err(_e) => { "".to_string() } 
+    pub fn save_website_parse(mut website_parse_info: WebsiteParse) {
+        let mut conn = get_once_db_conn();
+        match website_parse_info.id {
+            Some(website_parse_info_id) => {
+                let _result = update(website_parse)
+                .set((website_key.eq(website_parse_info.website_key), website_parse_url.eq(website_parse_info.website_parse_url)))
+                .filter(id.eq(website_parse_info_id)).execute(&mut conn);
+            }
+            _ => {
+                let position_max = website_parse.select(max(position)).first::<Option<f64>>(&mut conn).unwrap().unwrap_or(0.00);
+                website_parse_info.position = position_max + 10.0;
+                insert_into(website_parse).values(&website_parse_info).execute(&mut conn).unwrap();
+            }
         }
     }
 
     #[command]
-    pub fn save_website_parse(website_parse: WebsiteParse) {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        match Some(website_parse.id) {
-            Some(_i) => conn.execute(
-                "INSERT INTO website_parse (id, website_key, website_parse_url) VALUES (?1, ?2, ?3)",
-                (&website_parse.id, &website_parse.websiteKey, &website_parse.websiteParseUrl, ),
-            ).unwrap(),
-            None => conn.execute(
-                "UPDATE website_parse SET website_key = ?1, website_parse_url = ?2 WHERE id = ?3",
-                (&website_parse.websiteKey, &website_parse.websiteParseUrl, &website_parse.id, ),
-            ).unwrap(),
-        };
-    }
-
-    #[command]
-    pub fn del_website_parse(id: i32) {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        conn.execute("DELETE FROM website_parse WHERE id = ?1", params![&id]).unwrap();
+    pub fn del_website_parse(website_parse_info_id: i32) {
+        let mut conn = get_once_db_conn();
+        delete(website_parse.filter(id.eq(&website_parse_info_id))).execute(&mut conn).unwrap();
     }
 
 }

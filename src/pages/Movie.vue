@@ -281,7 +281,7 @@
               <el-button
                 @click.stop="
                   downloadEvent(
-                    getSiteByKey(scope.row.siteKey, 2),
+                    getSiteByKey(scope.row.siteKey),
                     scope.row.ids
                   )
                 "
@@ -382,7 +382,7 @@
               <el-button
                 @click.stop="
                   downloadEvent(
-                    getSiteByKey(scope.row.siteKey, 2),
+                    getSiteByKey(scope.row.siteKey),
                     scope.row.ids
                   )
                 "
@@ -471,6 +471,7 @@ import {
 } from "vue";
 import { useCoreStore } from "@/store";
 import { useMovieStore } from "@/store/movie";
+import { useStarStore } from "@/store/star";
 import { storeToRefs } from "pinia";
 import moviesApi from "@/api/movies";
 import { ElMessage } from "element-plus";
@@ -599,11 +600,16 @@ export default defineComponent({
     } = movieStore;
     const {
       siteList,
-      moviesDetailCache,
       detail,
       moviesConf,
       searchRecordList,
     } = storeToRefs(movieStore);
+
+    const starStore = useStarStore();
+    const {
+      starMovie
+    } = starStore;
+    const { starMap } = storeToRefs(movieStore);
 
     const classList = ref([]);
     const moviesPageInfo = ref({
@@ -786,9 +792,15 @@ export default defineComponent({
     }, 500);
 
     const detailEvent = (e) => {
+      let siteKey;
+      if (movieInfo.showFind) {
+        siteKey = e.site.key;
+      } else {
+        siteKey = movieInfo.currentSite.key;
+      }
       detail.value = {
         show: true,
-        siteKey: movieInfo.currentSite.key,
+        siteKey: siteKey,
         ids: e.id.toString(),
       };
     };
@@ -796,7 +808,11 @@ export default defineComponent({
     const playEvent = async (e) => {
       playInfo.value.playType = "onlineMovie";
       playInfo.value.name = e.name;
-      playInfo.value.movie.siteKey = movieInfo.currentSite.key;
+      if (movieInfo.showFind) {
+        playInfo.value.movie.siteKey = e.site.key;
+      } else {
+        playInfo.value.movie.siteKey = movieInfo.currentSite.key;
+      }
       playInfo.value.movie.ids = e.id;
       playInfo.value.movie.index = 0;
       playInfo.value.movie.videoFlag = "";
@@ -805,40 +821,26 @@ export default defineComponent({
     };
 
     const starEvent = async (e) => {
-      let siteKey = movieInfo.currentSite.key,
+      let siteKey,
         ids = e.id.toString();
-      const starStr = await invoke("get_star_by_uq", {
-        siteKey: siteKey,
-        ids: ids,
-      });
-      if (starStr) {
-        ElMessage({ showClose: true, message: "当前影片已收藏", type: "info" });
+      if (movieInfo.showFind) {
+        siteKey = e.site.key;
       } else {
-        const cacheKey = siteKey + "@" + ids;
-        if (!moviesDetailCache.value[cacheKey]) {
-          moviesDetailCache.value[cacheKey] = await moviesApi.detail(
-            movieInfo.currentSite,
-            e.id
-          );
-        }
-        const star = {
-          id: 0,
-          name: e.name,
-          ids: e.id.toString(),
-          siteKey: siteKey,
-          movieType: e.type,
-          year: e.year + "年",
-          note: e.note,
-          doubanRate: await doubanApi.doubanRate(e.name, e.year),
-          hasUpdate: "0",
-          lastUpdateTime: e.last,
-          position: 0.0,
-          pic: e.pic,
-          area: e.area,
-        };
-        await invoke("save_star", { star: star });
-        ElMessage({ showClose: true, message: "收藏成功", type: "success" });
+        siteKey = movieInfo.currentSite.key;
       }
+      let star = {
+        star_name: e.name,
+        ids: ids,
+        site_key: siteKey,
+        movie_type: e.type,
+        year: e.year + "年",
+        note: e.note,
+        douban_rate: await doubanApi.doubanRate(e.name, e.year),
+        last_update_time: e.last,
+        pic: e.pic,
+        area: e.area,
+      };
+      starMovie(star);
     };
 
     const shareEvent = (e) => {
@@ -973,8 +975,7 @@ export default defineComponent({
           .search(site, wd)
           .then((res) => {
             if (id !== movieInfo.searchId || !movieInfo.searchRunning) return;
-            const type = Object.prototype.toString.call(res);
-            if (type === "[object Array]") {
+            if (_.isArray(res)) {
               let count = 0;
               res.forEach((element) => {
                 moviesApi
@@ -1001,7 +1002,7 @@ export default defineComponent({
                     }
                   });
               });
-            } else if (type === "[object Object]") {
+            } else if (_.isObject(res)) {
               moviesApi
                 .detail(site, res.id)
                 .then((detailRes) => {
@@ -1178,6 +1179,7 @@ export default defineComponent({
       onContextMenu,
       areaClick,
       startPageChange,
+      starMap,
     };
   },
 });

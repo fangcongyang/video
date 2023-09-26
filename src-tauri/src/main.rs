@@ -54,7 +54,6 @@ fn main() {
         search_record::cmd::save_search_record,
         search_record::cmd::del_all_search_record,
         website_parse::cmd::select_website_parse,
-        website_parse::cmd::get_website_parse_by_key,
         website_parse::cmd::save_website_parse,
         website_parse::cmd::del_website_parse,
         menu::cmd::exist_app,

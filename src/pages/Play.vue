@@ -60,6 +60,20 @@
       </div>
       <div
         class="more"
+        v-if="playInfo.movie.playMode === 'localFile'"
+        :key="playInfo.playType"
+        >
+        <span
+          class="zy-svg"
+          @click="localMoviesListEvent"
+          :class="playerInfo.right.type === 'localMovieList' ? 'active' : ''"
+          v-show="downloadList.length > 0"
+        >
+          <svg-icon name="play-play_list" size="22" title="播放列表"></svg-icon>
+        </span>
+      </div>
+      <div
+        class="more"
         v-if="playInfo.playType == 'onlineMovie'"
         :key="playInfo.playType"
       >
@@ -295,6 +309,23 @@
             </li>
           </ul>
           <ul
+            v-if="playerInfo.right.type === 'localMovieList'"
+            class="list-item"
+            v-ClickOutside="closeListEvent"
+          >
+            <li v-if="downloadList.length === 0">无数据</li>
+            <li
+              @click="listItemEvent(j)"
+              :class="playInfo.name === i.movie_name ? 'active' : ''"
+              v-for="(i, j) in downloadList"
+              :key="i.id"
+            >
+            <span style="display :inline-block ;width: 100%;overflow: hidden;textOverflow: ellipsis;whiteSpace: nowrap" 
+              :title="i.movie_name" v-text="i.movie_name">
+            </span>
+            </li>
+          </ul>
+          <ul
             v-if="playerInfo.right.type === 'history'"
             class="list-history"
             v-ClickOutside="closeListEvent"
@@ -445,6 +476,7 @@ import { useCoreStore } from "@/store";
 import { useIptvStore } from "@/store/iptv";
 import { useMovieStore } from "@/store/movie";
 import { useHistoryStore } from "@/store/history";
+import { useDownloadStore } from "@/store/download";
 import moviesApi from "@/api/movies";
 import { ElMessage, ClickOutside } from "element-plus";
 import mt from "mousetrap";
@@ -539,6 +571,9 @@ export default defineComponent({
       historyStore;
     const { historyList, currentHistory } = toRefs(historyStore);
 
+    const downloadStore = useDownloadStore();
+    const { downloadList } = toRefs(downloadStore);
+
     const historyTimer = ref();
     const channelTreeRef = ref();
 
@@ -609,6 +644,7 @@ export default defineComponent({
         iptvInfo.showChannelGroupList = false;
         let downloadInfo = await invoke("get_download_by_id", {downloadId: playInfo.value.download.downloadId});
         const assetUrl = convertFileSrc(downloadInfo.url);
+        playInfo.value.name = downloadInfo.movie_name;
         player.dp.switchVideo({
           url: assetUrl,
           type: "mp4",
@@ -1083,6 +1119,16 @@ export default defineComponent({
       }
     };
 
+    const localMoviesListEvent = () => {
+      if (playerInfo.right.type === "localMovieList") {
+        playerInfo.right.show = false;
+        playerInfo.right.type = "";
+      } else {
+        playerInfo.right.show = true;
+        playerInfo.right.type = "localMovieList";
+      }
+    };
+
     const historyEvent = () => {
       if (playerInfo.right.type === "history") {
         playerInfo.right.show = false;
@@ -1166,6 +1212,9 @@ export default defineComponent({
         const channel = channelGroupList.value[n];
         // 是直播源，直接播放
         playChannel(channel);
+      } else if (playInfo.value.playType == "localMovie") {
+        const movie = downloadList.value[n];
+        playInfo.value.download.downloadId = movie.id;
       } else {
         playInfo.value.movie.index = n;
         playInfo.value.movie.videoFlag =
@@ -1482,6 +1531,8 @@ export default defineComponent({
       channelId,
       shortcutList,
       fmtMSS,
+      localMoviesListEvent,
+      downloadList,
     };
   },
   directives: {

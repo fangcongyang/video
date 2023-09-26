@@ -5,24 +5,19 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use diesel::prelude::*;
 
-#[allow(non_snake_case)]
 #[derive(Debug, Serialize, Deserialize, Clone, Queryable, Selectable, QueryableByName, Insertable)]
 #[diesel(table_name = crate::schema::download_info)]
 pub struct DownloadInfo {
     pub id: Option<i32>,
-    #[diesel(column_name = "movie_name")]
-    pub movieName: String,
+    pub movie_name: String,
     pub url: String,
-    #[diesel(column_name = "sub_title_name")]
-    pub subTitleName: String,
+    pub sub_title_name: String,
     // parseSource 解析资源 downloadSlice 下载切片  checkSouce 检查资源完整性 merger 合并资源  downloadEnd 下载完成
     pub status: String,
-    #[diesel(column_name = "download_count")]
-    pub downloadCount: i32,
+    pub download_count: i32,
     pub count: i32,
     // wait 等待下载 downloading 下载中 downloadFail 下载失败 downloadSuccess 下载成功
-    #[diesel(column_name = "download_status")]
-    pub downloadStatus: String,
+    pub download_status: String,
 }
 
 pub fn get_download_movie_path(movie_name: &str, sub_title_name: &str) -> PathBuf {
@@ -75,8 +70,8 @@ pub mod cmd {
         let mut conn = get_once_db_conn();
         let mut download = download_info.filter(id.is(download_id))
             .select(DownloadInfo::as_select()).first::<DownloadInfo>(&mut conn).unwrap();
-        let sub_title_name1 = &download.subTitleName;
-        let mut movie_path = super::get_download_movie_path(&download.movieName.clone(), sub_title_name1);
+        let sub_title_name1 = &download.sub_title_name;
+        let mut movie_path = super::get_download_movie_path(&download.movie_name.clone(), sub_title_name1);
         movie_path = movie_path
             .join(sub_title_name1.to_owned() + ".mp4");
         download.url = movie_path.into_os_string().into_string().unwrap();
@@ -86,7 +81,7 @@ pub mod cmd {
     #[command]
     pub fn del_download_info(download: DownloadInfo) {
         let mut conn = get_once_db_conn();
-        fs::remove_dir_all(super::get_download_movie_path(&download.movieName, &download.subTitleName)).unwrap();
+        fs::remove_dir_all(super::get_download_movie_path(&download.movie_name, &download.sub_title_name)).unwrap();
         delete(download_info.filter(id.eq(&download.id))).execute(&mut conn).unwrap();
     }
     

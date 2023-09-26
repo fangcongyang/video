@@ -129,8 +129,8 @@
           <el-table-column type="selection"> </el-table-column>
           <el-table-column
             sortable
-            :sort-method="(a, b) => sortByLocaleCompare(a.name, b.name)"
-            prop="name"
+            :sort-method="(a, b) => sortByLocaleCompare(a.star_name, b.star_name)"
+            prop="star_name"
             label="片名"
           >
           </el-table-column>
@@ -229,11 +229,11 @@
               <div class="img">
                 <div
                   class="rate"
-                  v-if="item.doubanRate && item.doubanRate !== '暂无评分'"
+                  v-if="item.douban_rate && item.douban_rate !== '暂无评分'"
                 >
-                  <span>{{ item.doubanRate }}分</span>
+                  <span>{{ item.douban_rate }}分</span>
                 </div>
-                <div class="update" v-if="item.hasUpdate === '1'">
+                <div class="update" v-if="item.has_update === '1'">
                   <span>有更新</span>
                 </div>
                 <ImageLazy
@@ -249,7 +249,7 @@
                     <span
                       class="o-star"
                       @click="
-                        downloadEvent(getSiteByKey(item.siteKey, 2), item.ids)
+                        downloadEvent(getSiteByKey(item.site_key), item.ids)
                       "
                       >下载</span
                     >
@@ -257,7 +257,7 @@
                   </div>
                 </div>
               </div>
-              <div class="name" @click="detailEvent(item)">{{ item.name }}</div>
+              <div class="name" @click="detailEvent(item)">{{ item.star_name }}</div>
               <div class="info">
                 <span>{{ item.area }}</span>
                 <span>{{ item.year }}</span>
@@ -312,7 +312,7 @@ export default defineComponent({
     const { view, systemConf, shiftDown, playInfo } = storeToRefs(coreStore);
 
     const movieStore = useMovieStore();
-    const { getSiteNameByKey } = movieStore;
+    const { getSiteNameByKey, getSiteByKey } = movieStore;
     const { detail } = storeToRefs(movieStore);
 
     const starStore = useStarStore();
@@ -704,6 +704,7 @@ export default defineComponent({
       onContextMenu,
       areaClick,
       typeClick,
+      getSiteByKey,
     };
   },
 });

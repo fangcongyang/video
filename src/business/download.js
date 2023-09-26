@@ -55,10 +55,10 @@ export class DownloadBus {
             this.intervalGetDownloadInfo();
           } else {
             if (dataObj.mes_type == "progress" && dataObj.status == "downloadSlice") {
-              this.downloadRequest.downloadInfo.downloadCount = dataObj.download_count;
+              this.downloadRequest.downloadInfo.download_count = dataObj.download_count;
             } else {
               this.downloadRequest.downloadInfo.count = dataObj.count;
-              this.downloadRequest.downloadInfo.downloadCount = dataObj.download_count;
+              this.downloadRequest.downloadInfo.download_count = dataObj.download_count;
               this.isWsOpen() && this.ws.send(JSON.stringify(this.downloadRequest));
             }
           }

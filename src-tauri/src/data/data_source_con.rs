@@ -138,7 +138,7 @@ fn init_database() {
     video_db.execute(
         "create table if not exists star (
             id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL , --主键id
-            name TEXT(50) NOT NULL  , --名称
+            star_name TEXT(50) NOT NULL  , --名称
             ids TEXT(50) NOT NULL  , --网站资源唯一id;网站id+视频id
             site_key TEXT(50) NOT NULL  , --网站key
             movie_type TEXT(10)  , --影片类型

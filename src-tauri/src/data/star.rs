@@ -1,146 +1,92 @@
 use super::data_source_con::*;
 use serde::{Serialize, Deserialize};
+use diesel::prelude::*;
 
-#[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Queryable, Selectable, QueryableByName, Insertable)]
+#[diesel(table_name = crate::schema::star)]
 pub struct Star {
-    id: i32,
-    name: String,
+    id: Option<i32>,
+    star_name: String,
     ids: String,
-    siteKey: String,
-    movieType: String,
+    site_key: String,
+    movie_type: String,
     year: String,
     note: String,
-    doubanRate: String,
-    hasUpdate: String,
-    lastUpdateTime: String,
+    douban_rate: String,
+    has_update: String,
+    last_update_time: String,
     position: f64,
     pic: String,
     area: String,
 }
 
 pub mod cmd {
-    use crate::utils;
-
+    
     use super::*;
-    use rusqlite::{params, named_params, params_from_iter};
     use tauri::command;
+    use diesel::{insert_into, delete, dsl::max};
+    use crate::schema::star::dsl::*;
 
     #[command]
     pub fn select_star() -> Vec<Star> {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        
-        let mut stmt = conn.prepare("SELECT * FROM star").unwrap();
-        let stars = stmt.query_map([], |row| {
-            Ok(Star {
-                id: row.get(0)?,
-                name: row.get(1)?,
-                ids: row.get(2)?,
-                siteKey: row.get(3)?,
-                movieType: row.get(4)?,
-                year: row.get(5)?,
-                note: row.get(6)?,
-                doubanRate: row.get(7)?,
-                hasUpdate: row.get(8)?,
-                lastUpdateTime: row.get(9)?,
-                position: row.get(10)?,
-                pic: row.get(11)?,
-                area: row.get(12)?,
-            })
-        }).unwrap();
-        
-        let star_list: Vec<Star> = stars.map(|star| star.unwrap()).collect();
-        star_list
+        let mut conn = get_once_db_conn();
+        let results = star.select(Star::as_select()).load::<Star>(&mut conn).unwrap();
+        results
     }
 
     #[command]
-    pub fn get_star_by_uq(site_key: &str, ids: &str) -> String {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        let star = conn.query_row("SELECT * FROM star where site_key = :siteKey and ids = :ids", 
-          named_params! { ":siteKey": site_key, ":ids": ids },
-            |row| {
-                Ok(Star {
-                    id: row.get(0)?,
-                    name: row.get(1)?,
-                    ids: row.get(2)?,
-                    siteKey: row.get(3)?,
-                    movieType: row.get(4)?,
-                    year: row.get(5)?,
-                    note: row.get(6)?,
-                    doubanRate: row.get(7)?,
-                    hasUpdate: row.get(8)?,
-                    lastUpdateTime: row.get(9)?,
-                    position: row.get(10)?,
-                    pic: row.get(11)?,
-                    area: row.get(12)?,
-                })
-            });
-        
-        match star { 
-            Ok(s) => { serde_json::to_string(&s).unwrap() } 
-            Err(_e) => { "".to_string() } 
+    pub fn get_star_by_uq(star_site_key: &str, star_ids: &str) -> Option<Star> {
+        let mut conn = get_once_db_conn();
+        let star_info = star.filter(site_key.is(star_site_key)).filter(ids.is(star_ids))
+            .select(Star::as_select()).first::<Star>(&mut conn);
+        match star_info {
+            Ok(si) => Some(si),
+            Err(_) => None,
         }
     }
 
     #[command]
-    pub fn save_star(mut star: Star) {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        if star.id == 0 {
-            let position: f64 = conn.query_row("SELECT MAX(position) FROM star", (), |row| row.get(0)).unwrap_or(0.0);
-            star.position = position + 10.0;
-            conn.execute(
-                "INSERT INTO star (name, ids, site_key, movie_type, year, note, douban_rate, has_update, last_update_time, position, pic, area)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-                (&star.name, &star.ids, &star.siteKey, &star.movieType, &star.year, &star.note, &star.doubanRate, &star.hasUpdate, &star.lastUpdateTime, 
-                &star.position, &star.pic, &star.area),
-            ).unwrap();
-        } else {
-            conn.execute(
-                "UPDATE star SET douban_rate = ?1, has_update = ?2, last_update_time = ?3, position = ?4 WHERE id = ?5",
-                (&star.doubanRate, &star.hasUpdate, &star.lastUpdateTime, &star.position, &star.id),
-            ).unwrap();
+    pub fn save_star(mut star_info: Star) {
+        let mut conn = get_once_db_conn();
+        match star_info.id {
+            Some(star_info_id) => {
+                let _result = diesel::update(star)
+                .set((douban_rate.eq(star_info.douban_rate), has_update.eq(star_info.has_update), 
+                    last_update_time.eq(star_info.last_update_time), position.eq(star_info.position)))
+                .filter(id.eq(star_info_id)).execute(&mut conn);
+            }
+            _ => {
+                let position_max = star.select(max(position)).first::<Option<f64>>(&mut conn).unwrap().unwrap_or(0.00);
+                star_info.position = position_max + 10.0;
+                insert_into(star).values(&star_info).execute(&mut conn).unwrap();
+            }
         }
     }
     
     #[command]
     pub fn insert_stars(stars: Vec<Star>) {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        for mut star in stars {
-            let position: f64 = conn.query_row("SELECT MAX(position) FROM star", (), |row| row.get(0)).unwrap_or(0.0);
-            star.position = position + 10.0;
-            conn.execute(
-                "INSERT INTO star (name, ids, site_key, movie_type, year, note, douban_rate, has_update, last_update_time, position, pic, area)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-                (&star.name, &star.ids, &star.siteKey, &star.movieType, &star.year, &star.note, &star.doubanRate, &star.hasUpdate, &star.lastUpdateTime, 
-                &star.position, &star.pic, &star.area),
-            ).unwrap();
+        let mut conn = get_once_db_conn();
+        let mut position_max = star.select(max(position)).first::<Option<f64>>(&mut conn).unwrap().unwrap_or(0.00);
+        for mut star_info in stars {
+            position_max = position_max + 10.0;
+            star_info.position = position_max;
+            insert_into(star).values(&star_info).execute(&mut conn).unwrap();
         }
     }
 
     #[command]
-    pub fn del_star(id: i32) {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        conn.execute("DELETE FROM star WHERE id = ?1", params![&id]).unwrap();
+    pub fn del_star(star_id: i32) {
+        let mut conn = get_once_db_conn();
+        delete(star.filter(id.eq(&star_id))).execute(&mut conn).unwrap();
     }
 
     #[command]
-    pub fn del_stars(ids: Vec<i32>) {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        if ids.len() == 0 {
+    pub fn del_stars(star_ids: Vec<i32>) {
+        let mut conn = get_once_db_conn();
+        if star_ids.len() == 0 {
             return;
         }
-        let vars = utils::repeat_vars(ids.len());
-        let sql = format!(
-            "DELETE FROM star WHERE id IN ({})",
-            vars,);
-        let mut stmt = conn.prepare(&sql).unwrap();
-        stmt.execute(params_from_iter(&ids)).unwrap();
+        delete(star.filter(id.eq_any(&star_ids))).execute(&mut conn).unwrap();
     }
 
 }
