@@ -3,7 +3,6 @@ use crossbeam::queue::SegQueue;
 use m3u8_rs::{MediaPlaylist, Playlist};
 use reqwest::StatusCode;
 use serde::{Deserialize, Serialize};
-use tokio::fs::read_dir;
 use url::Url;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
@@ -14,6 +13,7 @@ use std::{
     process::Command,
     sync::{atomic::AtomicI32, atomic::Ordering, Arc, Mutex},
     thread,
+    time::Duration,
 };
 use tokio::{
     fs::{remove_file, File},
@@ -174,107 +174,118 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
 
                 match &download_info_context.status[..] {
                     "parseSource" => {
-                        let content = download_request(&download_info_context.url).await.unwrap();
-                        let media_play_list: MediaPlaylist;
+                        let content = download_request(&download_info_context.url).await;
+                        match content {
+                            Ok(content1) => {
 
-                        match m3u8_rs::parse_playlist_res(&content).expect("Invalid .m3u8 format") {
-                            Playlist::MasterPlaylist(master) => {
-                                for (i, vs) in master.variants.iter().enumerate() {
-                                    println!(
-                                        "{index}: \n {stream:#?}",
-                                        index = format!("#{}", i).blue(),
-                                        stream = vs
-                                    )
-                                }
+                                let media_play_list: MediaPlaylist;
 
-                                let stream = master
-                                    .variants
-                                    .get(0)
-                                    .expect(&"Please select a valid number!".red());
-                                download_info_context.url =
-                                    download_info_context.url.join(&stream.uri).unwrap();
-
-                                let play_list = m3u8_rs::parse_playlist_res(
-                                    &download_request(&download_info_context.url).await.unwrap(),
-                                )
-                                .expect("play list not found");
-                                match play_list {
-                                    Playlist::MediaPlaylist(media_list) => {
-                                        media_play_list = media_list
+                                match m3u8_rs::parse_playlist_res(&content1).expect("Invalid .m3u8 format") {
+                                    Playlist::MasterPlaylist(master) => {
+                                        for (i, vs) in master.variants.iter().enumerate() {
+                                            println!(
+                                                "{index}: \n {stream:#?}",
+                                                index = format!("#{}", i).blue(),
+                                                stream = vs
+                                            )
+                                        }
+        
+                                        let stream = master
+                                            .variants
+                                            .get(0)
+                                            .expect(&"Please select a valid number!".red());
+                                        download_info_context.url =
+                                            download_info_context.url.join(&stream.uri).unwrap();
+        
+                                        let play_list = m3u8_rs::parse_playlist_res(
+                                            &download_request(&download_info_context.url).await.unwrap(),
+                                        )
+                                        .expect("play list not found");
+                                        match play_list {
+                                            Playlist::MediaPlaylist(media_list) => {
+                                                media_play_list = media_list
+                                            }
+                                            _ => panic!("media play list not found"),
+                                        }
                                     }
-                                    _ => panic!("media play list not found"),
+                                    Playlist::MediaPlaylist(media_list) => media_play_list = media_list,
                                 }
-                            }
-                            Playlist::MediaPlaylist(media_list) => media_play_list = media_list,
-                        }
-
-                        let count = media_play_list.segments.len();
-                        download_info_context.count = count as i32;
-
-                        let mut download_source_info = DownloadSourceInfo::new();
-                        download_source_info.id = download_info_context.id;
-
-                        utils::mkdir(&download_info_context.ts_path);
-
-                        let index = download_info_context.index_path.clone();
-                        if utils::exists(&index) {
-                            remove_file(&index).await.unwrap();
-                        }
-
-                        utils::create_file(&index).unwrap();
-
-                        let mut download_list: Vec<DownloadInfoDetail> = Vec::new();
-
-                        for (i, segment) in media_play_list.segments.iter().enumerate() {
-                            let file_name = download_info_context
-                                .ts_path
-                                .join(Path::new(&segment.uri).file_name().unwrap());
-                            let file_name_str = utils::get_path_name(file_name.clone());
-                            if let Some(k) = &segment.key {
-                                let base_key_url = download_info_context.url.clone();
-                                download_source_info.m3u8_encrypt_key =
-                                    M3u8EncryptKey::from_key(base_key_url, k).await.unwrap();
-                            }
-
-                            let mut index_file =
-                                OpenOptions::new().append(true).open(index.clone()).unwrap();
-                            let s = format!("{} {} {}", "file", file_name_str, "\n");
-                            index_file.write(s.as_bytes()).expect("写入文件异常");
-
-                            // 判断文件碎片是否已下载
-                            if file_name.is_file() {
-                                if File::open(&file_name).await?.metadata().await?.len() != 0 {
-                                    println!(
-                                        "Pass {}",
-                                        &file_name.file_name().unwrap().to_str().unwrap()
-                                    );
-                                    continue;
+        
+                                let count = media_play_list.segments.len();
+                                download_info_context.count = count as i32;
+        
+                                let mut download_source_info = DownloadSourceInfo::new();
+                                download_source_info.id = download_info_context.id;
+        
+                                utils::mkdir(&download_info_context.ts_path);
+        
+                                let index = download_info_context.index_path.clone();
+                                if utils::exists(&index) {
+                                    remove_file(&index).await.unwrap();
                                 }
+        
+                                utils::create_file(&index).unwrap();
+        
+                                let mut download_list: Vec<DownloadInfoDetail> = Vec::new();
+        
+                                for (i, segment) in media_play_list.segments.iter().enumerate() {
+                                    let file_name = download_info_context
+                                        .ts_path
+                                        .join(Path::new(&segment.uri).file_name().unwrap());
+                                    let file_name_str = utils::get_path_name(file_name.clone());
+                                    if let Some(k) = &segment.key {
+                                        let base_key_url = download_info_context.url.clone();
+                                        download_source_info.m3u8_encrypt_key =
+                                            M3u8EncryptKey::from_key(base_key_url, k).await.unwrap();
+                                    }
+        
+                                    let mut index_file =
+                                        OpenOptions::new().append(true).open(index.clone()).unwrap();
+                                    let s = format!("{} {} {}", "file", file_name_str, "\n");
+                                    index_file.write(s.as_bytes()).expect("写入文件异常");
+        
+                                    // 判断文件碎片是否已下载
+                                    if file_name.is_file() {
+                                        if File::open(&file_name).await?.metadata().await?.len() != 0 {
+                                            println!(
+                                                "Pass {}",
+                                                &file_name.file_name().unwrap().to_str().unwrap()
+                                            );
+                                            continue;
+                                        }
+                                    }
+        
+                                    let base_download_url = download_info_context.url.clone();
+                                    let url = base_download_url.join(&segment.uri).unwrap();
+                                    download_list.push(DownloadInfoDetail {
+                                        id: i,
+                                        url,
+                                        file_name: file_name.into_os_string().into_string().unwrap(),
+                                        success: false,
+                                    });
+                                }
+                                download_source_info.download_info_list = download_list;
+        
+                                if let Ok(v) = serde_json::to_string_pretty(&download_source_info) {
+                                    std::fs::write(download_info_context.json_path.clone(), v).unwrap();
+                                }
+        
+                                download_info_context.status = "downloadSlice".to_string();
+                                download_info_context.download_status = "downloading".to_string();
+        
+                                let download_info_context1 = download_info_context.clone();
+                                update_download_info_by_context(download_info_context);
+                                socket.send(tungstenite::Message::Text(
+                                    serde_json::to_string(&download_info_context1).unwrap(),
+                                ))?
                             }
-
-                            let base_download_url = download_info_context.url.clone();
-                            let url = base_download_url.join(&segment.uri).unwrap();
-                            download_list.push(DownloadInfoDetail {
-                                id: i,
-                                url,
-                                file_name: file_name.into_os_string().into_string().unwrap(),
-                                success: false,
-                            });
+                            Err(_) => {
+                                println!("请求响应数据错误");
+                                socket.send(tungstenite::Message::Text(
+                                    serde_json::to_string(&download_info_context).unwrap(),
+                                ))?
+                            },
                         }
-                        download_source_info.download_info_list = download_list;
-
-                        if let Ok(v) = serde_json::to_string_pretty(&download_source_info) {
-                            std::fs::write(download_info_context.json_path.clone(), v).unwrap();
-                        }
-
-                        download_info_context.status = "downloadSlice".to_string();
-                        download_info_context.download_status = "downloading".to_string();
-
-                        let download_info_context1 = download_info_context.clone();
-                        update_download_info_by_context(download_info_context);
-                        socket.send(tungstenite::Message::Text(
-                            serde_json::to_string(&download_info_context1).unwrap(),
-                        ))?
                     }
                     "downloadSlice" => {
                         let download_count = AtomicI32::new(download_info_context.download_count);
@@ -391,15 +402,15 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                         ))?
                     }
                     "checkSouce" => {
-                        let ts_path1 = download_info_context.ts_path.clone();
-                        let mut entries = read_dir(ts_path1).await.unwrap();
                         let mut downloaded = true;
                         
-                        while let Some(entry) = entries.next_entry().await? {
-                            if File::open(&entry.path()).await?.metadata().await?.len() == 0 {
-                                downloaded = false;
-                                break;
-                            }
+                        let v = std::fs::read_to_string(download_info_context.json_path.clone())
+                            .unwrap();
+                        let download_source_info =
+                            serde_json::from_str::<DownloadSourceInfo>(&v).unwrap();
+                        if download_source_info.download_info_list.len() != 0 {
+                            downloaded = false;
+                            thread::sleep(Duration::from_secs(10));
                         }
                         
                         if downloaded {

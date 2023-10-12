@@ -10,6 +10,7 @@ export const useCoreStore = defineStore('core', {
           playerConfInit: false,
           systemConfInit: false,
           shortcutInit: false,
+          movieParseUrlListInit: false,
         },
         systemConf: {
           theme: "theme-light",
@@ -61,6 +62,7 @@ export const useCoreStore = defineStore('core', {
             playMode: "local",
           }
         },
+        movieParseUrlList: [],
       }
     },
     actions:{
@@ -138,8 +140,19 @@ export const useCoreStore = defineStore('core', {
           this.systemConf.shiftTooltipLimitTimes--;
           this.updateSystemConf();
         }
-      }
+      },
 
+      async getAllMovieParseUrl() {
+        if (!this.init.movieParseUrlListInit) {
+          await this.refreshMovieParseUrlList();
+          this.init.movieParseUrlListInit = true;
+        }
+      },
+
+      async refreshMovieParseUrlList() {
+        let movieParseUrlList = await invoke("select_website_parse", {});
+        this.movieParseUrlList = movieParseUrlList;
+      },
     },
     getters:{
       playMovieUq() {

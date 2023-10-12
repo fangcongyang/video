@@ -31,12 +31,6 @@
       <SvgIcon name="history"></SvgIcon>
     </span>
     <span
-      :class="[view === 'Download' ? 'active ' : ''] + 'dh-svg'"
-      @click="changeView('Download')"
-    >
-      <SvgIcon name="download"></SvgIcon>
-    </span>
-    <span
       :class="[view === 'Setting' ? 'active ' : ''] + 'dh-svg'"
       @click="changeView('Setting')"
     >

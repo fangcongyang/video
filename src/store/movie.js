@@ -28,7 +28,7 @@ export const useMovieStore = defineStore('movie', {
         movieDetailCache: {
         },
         searchRecordList: [],
-        videoDetailCache: {}
+        videoDetailCache: {},
       }
     },
     actions:{

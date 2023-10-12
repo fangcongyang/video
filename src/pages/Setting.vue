@@ -124,20 +124,6 @@
         </div>
       </div>
       <div class="setting-item">
-        <div class="title">缓存</div>
-        <div class="setting-item-box">
-          <div class="vop-select">
-            <div
-              class="vs-placeholder vs-noAfter"
-              title="清理缓存后图片资源需重新下载，不建议清理，软件会根据磁盘空间动态管理缓存大小"
-              @click="clearCache"
-            >
-              <span>清理缓存</span>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="setting-item">
         <div class="title">定位时间设置</div>
         <div class="setting-item-box">
           <div class="vop-input">
@@ -199,11 +185,16 @@
             </div>
           </div>
           <div class="vop-select">
+            <div class="vs-placeholder vs-noAfter" @click="editDownloadEvent">
+              <span>下载管理</span>
+            </div>
+          </div>
+          <div class="vop-select">
             <div
               class="vs-placeholder vs-noAfter"
-              @click="settingInfo.configDefaultParseUrlDialog = true"
+              @click="settingInfo.movieParseUrlManage = true"
             >
-              <span>设置默认解析接口</span>
+              <span>解析接口管理</span>
             </div>
           </div>
         </div>
@@ -261,33 +252,55 @@
     </div>
     <div>
       <!-- 设置默认解析接口 -->
-      <el-dialog
-        :visible.sync="settingInfo.configDefaultParseUrlDialog"
-        v-if="settingInfo.configDefaultParseUrlDialog"
-        title="设置默认解析接口"
+      <el-drawer
+        v-model="settingInfo.movieParseUrlManage"
+        title="解析接口管理"
+        size="400"
+        direction="rtl"
         :append-to-body="true"
-        @close="closeDialog"
       >
-        <el-form label-width="45px" label-position="left">
-          <el-form-item label="URL:">
+        <el-form label-position="top">
+          <el-form-item label="解析编码">
             <el-input
-              v-model="setting.defaultParseURL"
-              :autosize="{ minRows: 2, maxRows: 4 }"
-              type="textarea"
-              placeholder="请输入解析接口地址，为空时会自动设置，重置时会自动更新默认接口地址"
+              v-model="websiteParse.website_key"
+              placeholder="请输入解析编码"
             />
           </el-form-item>
+          <el-form-item label="解析地址">
+            <el-input
+              v-model="websiteParse.website_parse_url"
+              :autosize="{ minRows: 2, maxRows: 4 }"
+              type="textarea"
+              placeholder="请输入解析地址"
+            />
+          </el-form-item>
+          <el-form-item>
+            <el-button @click="clearWebsiteParse"
+              >清空</el-button
+            >
+            <el-button type="danger" @click="resetWebsiteParse"
+              >重置</el-button
+            >
+            <el-button type="primary" @click="saveWebsiteParse"
+              >确定</el-button
+            >
+          </el-form-item>
         </el-form>
-        <span slot="footer" class="dialog-footer">
-          <el-button @click="closeDialog">取消</el-button>
-          <el-button type="danger" @click="resetDefaultParseURL"
-            >重置</el-button
-          >
-          <el-button type="primary" @click="configDefaultParseURL"
-            >确定</el-button
-          >
-        </span>
-      </el-dialog>
+        <el-table :data="movieParseUrlList" style="width: 100%">
+          <el-table-column prop="website_key" show-overflow-tooltip width="90" label="解析编码" />
+          <el-table-column prop="website_parse_url" label="解析地址" show-overflow-tooltip  />
+          <el-table-column label="操作">
+            <template #default="scope">
+              <el-button size="small" @click="editWebsiteParse(scope.row)" link>
+                编辑
+              </el-button>
+              <el-button size="small" type="danger" @click="delWebsiteParse(scope.row.id)" link>
+                删除
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-drawer>
     </div>
     <div>
       <!-- 输入密码页面 -->
@@ -362,6 +375,7 @@ import {marked} from 'marked';
 import {
   Close
 } from "@element-plus/icons-vue";
+import { invoke } from "@tauri-apps/api";
 
 marked.setOptions({
   renderer: new marked.Renderer(),
@@ -388,15 +402,15 @@ export default defineComponent({
   name: "Setting",
   setup() {
     const coreStore = useCoreStore();
-    const { getPlayerConf, getSystemConf, updatePlayerConf, updateSystemConf, refreshSystemConf } =
+    const { getPlayerConf, getSystemConf, updatePlayerConf, updateSystemConf, refreshSystemConf, getAllMovieParseUrl } =
       coreStore;
-    const { view, systemConf, playerConf } = storeToRefs(coreStore);
+    const { view, systemConf, playerConf, movieParseUrlList } = storeToRefs(coreStore);
 
     const settingInfo = reactive({
       shortcut: false,
       excludeRootClasses: false,
       excludeR18Films: false,
-      configDefaultParseUrlDialog: false,
+      movieParseUrlManage: false,
       checkPasswordDialog: false,
       changePasswordDialog: false,
       rootClass: "",
@@ -404,6 +418,14 @@ export default defineComponent({
       inputPassword: "",
       action: "",
     });
+
+    const websiteParse = ref({
+      id: null,
+      website_key: "",
+      website_parse_url: ""
+    });
+
+    const tempWebsiteParse = ref({});
 
     const unlisten = ref(0);
     const eventId = ref(0);
@@ -443,7 +465,7 @@ export default defineComponent({
     const closeDialog = () => {
       settingInfo.checkPasswordDialog = false
       settingInfo.changePasswordDialog = false
-      settingInfo.configDefaultParseUrlDialog = false
+      settingInfo.movieParseUrlManage = false
       settingInfo.inputPassword = ''
     }
     
@@ -490,6 +512,15 @@ export default defineComponent({
         settingInfo.checkPasswordDialog = true
       } else {
         view.value = 'EditSites'
+      }
+    }
+
+    const editDownloadEvent = () => {
+      if (systemConf.value.encryptedPassword) {
+        settingInfo.action = 'Download'
+        settingInfo.checkPasswordDialog = true
+      } else {
+        view.value = 'Download'
       }
     }
 
@@ -584,6 +615,32 @@ export default defineComponent({
       }
     }
 
+    const saveWebsiteParse = async () => {
+      await invoke("save_website_parse", { websiteParseInfo: websiteParse.value });
+      clearWebsiteParse();
+    }
+
+    const clearWebsiteParse = () => {
+      websiteParse.value = {
+        id: null,
+        website_key: "",
+        website_parse_url: ""
+      }
+    }
+
+    const editWebsiteParse = (row) => {
+      websiteParse.value = row;
+      tempWebsiteParse.value = row;
+    }
+
+    const delWebsiteParse = async (id) => {
+      await invoke("del_website_parse", { websiteParseInfoId: id });
+    }
+
+    const resetWebsiteParse = () => {
+      websiteParse.value = tempWebsiteParse.value;
+    }
+
     const percentage = computed(() => updateInfo.downloaded/updateInfo.total)
 
     const updateBody = computed(() => marked.parse(updateInfo.body))
@@ -591,6 +648,7 @@ export default defineComponent({
     onBeforeMount(() => {
       getSystemConf();
       getPlayerConf();
+      getAllMovieParseUrl();
     });
 
     onMounted(() => {
@@ -623,6 +681,7 @@ export default defineComponent({
       changePasswordEvent,
       checkPasswordEvent,
       editSitesEvent,
+      editDownloadEvent,
       addRootClassFilter,
       Close,
       removeRootClassFilter,
@@ -638,27 +697,18 @@ export default defineComponent({
       startUpdate,
       updateBody,
       chooseDownloadSavePath,
+      movieParseUrlList,
+      websiteParse,
+      saveWebsiteParse,
+      editWebsiteParse,
+      delWebsiteParse,
+      resetWebsiteParse,
+      clearWebsiteParse,
     };
   },
 });
 // export default {
 //   methods: {
-//     getSetting () {
-//       setting.find().then(res => {
-//         this.d = res
-//         this.setting = this.d
-//         if (!this.setting.defaultParseURL) this.configDefaultParseURL()
-//       })
-//     },
-//     async resetDefaultParseURL () {
-//       this.setting.defaultParseURL = 'https://jx.bpba.cc/?v='
-//     },
-//     async configDefaultParseURL () {
-//       if (!this.setting.defaultParseURL) await this.resetDefaultParseURL()
-//       this.d.defaultParseURL = this.setting.defaultParseURL?.trim()
-//       this.show.configDefaultParseUrlDialog = false
-//       this.updateSettingEvent()
-//     },
 //     resetShortcut () {
 //       shortcut.clear().then(shortcut.add(defaultShortcuts)).then(res => {
 //         this.getShortcut()
@@ -668,10 +718,6 @@ export default defineComponent({
 //       })
 //     },
 //   },
-//   created () {
-//     this.getSetting()
-//     this.getShortcut()
-//   }
 // }
 </script>
 <style lang="scss" scoped>
@@ -726,7 +772,7 @@ export default defineComponent({
             color: rgba(0, 0, 0, 0.25);
             background-color: #F0F2F5;
             opacity: 1;
-            padding: 3px 8px;
+            padding: 2px 6px;
             margin: 0px 10px 4px 0px;
             border: 1px solid #DCDFE6;
             border-radius: 4px;

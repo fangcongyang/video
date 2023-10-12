@@ -542,7 +542,7 @@ export default defineComponent({
     };
 
     const deleteEvent = async (star) => {
-      await invoke("del_star", { id: star.id });
+      await invoke("del_star", { starId: star.id });
       refreshStars();
     };
 
