@@ -103,11 +103,11 @@ fn init_database() {
     video_db.execute(
         "create table if not exists channel_group (
             id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL , --主键id
-            name TEXT(50) NOT NULL  , --名称
-            channel_group TEXT(20) NOT NULL  , --频道分组
-            active TEXT(1) NOT NULL  , --是否激活;1 激活 0不激活
-            status TEXT(3) NOT NULL  , --状态;可用 不可用
-            has_children TEXT(1) NOT NULL,  --是否有子数据
+            channel_name TEXT(50) NOT NULL  , --名称
+            channel_group_name TEXT(20) NOT NULL  , --频道分组
+            channel_active TEXT(1) NOT NULL  , --是否激活;1 激活 0不激活
+            channel_status TEXT(3) NOT NULL  , --状态;可用 不可用
+            position REAL NOT NULL, --排序
             channels TEXT(1000) NOT NULL --频道列表
         )",
         (),

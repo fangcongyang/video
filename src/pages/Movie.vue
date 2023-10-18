@@ -208,7 +208,6 @@
                   <div class="operate-wrap">
                     <span class="o-play" @click="playEvent(item)">播放</span>
                     <span class="o-star" @click="starEvent(item)">收藏</span>
-                    <span class="o-share" @click="shareEvent(item)">分享</span>
                   </div>
                 </div>
               </div>
@@ -236,7 +235,6 @@
           @row-click="detailEvent"
           v-infinite-scroll="infiniteHandler"
           infinite-scroll-distance="100"
-          style="width: 100%"
         >
           <el-table-column prop="name" label="片名"> </el-table-column>
           <el-table-column
@@ -246,7 +244,7 @@
             width="100"
           >
           </el-table-column>
-          <el-table-column prop="year" label="上映" align="center" width="100">
+          <el-table-column prop="year" label="上映" align="center" width="80">
           </el-table-column>
           <el-table-column prop="area" label="地区" width="100">
           </el-table-column>
@@ -274,9 +272,6 @@
               >
               <el-button @click.stop="starEvent(scope.row)" link
                 >收藏</el-button
-              >
-              <el-button @click.stop="shareEvent(scope.row)" link
-                >分享</el-button
               >
               <el-button
                 @click.stop="
@@ -376,9 +371,6 @@
               <el-button @click.stop="starEvent(scope.row)" link
                 >收藏</el-button
               >
-              <el-button @click.stop="shareEvent(scope.row)" link
-                >分享</el-button
-              >
               <el-button
                 @click.stop="
                   downloadEvent(
@@ -440,7 +432,6 @@
                   <div class="operate-wrap">
                     <span class="o-play" @click="playEvent(item)">播放</span>
                     <span class="o-star" @click="starEvent(item)">收藏</span>
-                    <span class="o-share" @click="shareEvent(item)">分享</span>
                   </div>
                 </div>
               </div>
@@ -843,14 +834,6 @@ export default defineComponent({
       starMovie(star);
     };
 
-    const shareEvent = (e) => {
-      this.share = {
-        show: true,
-        key: movieInfo.currentSite.key,
-        info: e,
-      };
-    };
-
     const downloadEvent = () => {
       downloadMovie(getSiteByKey(detail.value.siteKey), detail.value.ids);
     };
@@ -1030,11 +1013,7 @@ export default defineComponent({
           .catch(() => {
             movieInfo.siteSearchCount++;
             if (moviesConf.value.searchGroup === "站内")
-              ElMessage({
-                showClose: true,
-                message: "本次查询状态异常，未获取到数据！",
-                type: "error",
-              });
+              ElMessage.error("本次查询状态异常，未获取到数据！");
           });
       });
     };
@@ -1066,7 +1045,7 @@ export default defineComponent({
       const wd = movieInfo.searchTxt;
       if (wd) {
         await invoke("save_search_record", {
-          searchRecord: { id: 0, keywords: wd },
+          searchRecordInfo: { keywords: wd },
         });
         refreshSearchRecordList();
       }
@@ -1167,7 +1146,6 @@ export default defineComponent({
       currentColumn,
       refreshFilteredList,
       starEvent,
-      shareEvent,
       moviesConf,
       querySearch,
       searchEvent,

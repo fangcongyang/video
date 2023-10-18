@@ -24,23 +24,18 @@
             <div class="vs-options" v-show="settingInfo.shortcut">
               <ul class="vop-scroll">
                 <li
-                  :class="systemConf.shortcut === true ? 'active' : ''"
+                  :class="systemConf.shortcutEnabled === true ? 'active' : ''"
                   @click="updateSystemConf"
                 >
                   开启
                 </li>
                 <li
-                  :class="systemConf.shortcut === false ? 'active' : ''"
+                  :class="systemConf.shortcutEnabled === false ? 'active' : ''"
                   @click="updateSystemConf"
                 >
                   关闭
                 </li>
               </ul>
-            </div>
-          </div>
-          <div class="vop-select">
-            <div class="vs-placeholder vs-noAfter" @click="expShortcut">
-              <span>导出</span>
             </div>
           </div>
           <div class="vop-select">
@@ -363,7 +358,6 @@
 import { defineComponent, reactive, ref, computed, onMounted, onBeforeMount } from "vue";
 import { useCoreStore } from "@/store";
 import { storeToRefs } from "pinia";
-import { writeText } from "@tauri-apps/api/clipboard";
 import { open } from "@tauri-apps/api/shell";
 import { open as fileOpen } from '@tauri-apps/api/dialog';
 import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
@@ -404,7 +398,7 @@ export default defineComponent({
     const coreStore = useCoreStore();
     const { getPlayerConf, getSystemConf, updatePlayerConf, updateSystemConf, refreshSystemConf, getAllMovieParseUrl } =
       coreStore;
-    const { view, systemConf, playerConf, movieParseUrlList } = storeToRefs(coreStore);
+    const { view, systemConf, playerConf, movieParseUrlList, shortcutList } = storeToRefs(coreStore);
 
     const settingInfo = reactive({
       shortcut: false,
@@ -445,13 +439,6 @@ export default defineComponent({
       { color: '#1989fa', percentage: 80 },
       { color: '#6f7ad3', percentage: 100 },
     ]
-
-    const expShortcut = async () => {
-      const arr = [...this.shortcutList];
-      const str = JSON.stringify(arr, null, 2);
-      await writeText(str);
-      ElMessage.success("已复制到剪贴板");
-    };
 
     const linkOpen = async (url) => {
       await open(url);
@@ -673,7 +660,6 @@ export default defineComponent({
       settingInfo,
       playerConf,
       updateSystemConf,
-      expShortcut,
       linkOpen,
       changeTheme,
       updatePlayerConf,
@@ -707,18 +693,6 @@ export default defineComponent({
     };
   },
 });
-// export default {
-//   methods: {
-//     resetShortcut () {
-//       shortcut.clear().then(shortcut.add(defaultShortcuts)).then(res => {
-//         this.getShortcut()
-//         this.$message.success('快捷键已重置')
-//         this.d.shortcutModified = true
-//         this.updateSettingEvent()
-//       })
-//     },
-//   },
-// }
 </script>
 <style lang="scss" scoped>
 .setting {

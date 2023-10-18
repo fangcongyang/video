@@ -78,7 +78,7 @@
     },
     "updater": {
       "active": true,
-      "dialog": true,
+      "dialog": false,
       "endpoints": ["https://github.com/fangcongyang/video/releases/download/updater/update.json"],
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEE2RUFFMjU0REExQzc1QgpSV1JieDZGTkphNXVDaW15bC9qZHdPOEZHUHZ4WlpDYmdUY1g5MzV3Mm1kajB2TGMrOEZzcWZBcQo=",
       "windows": {

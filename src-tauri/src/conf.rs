@@ -37,6 +37,7 @@ pub_struct!(SystemConf {
   shortcutModified: bool,
   encryptedPassword: String,
   downloadSavePath: String,
+  shortcutEnabled: bool,
 });
 
 impl SystemConf {
@@ -61,6 +62,7 @@ impl SystemConf {
       shortcutModified: false,
       encryptedPassword: "".into(),
       downloadSavePath: download_save_path,
+      shortcutEnabled: true,
     }
   }
 }

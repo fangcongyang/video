@@ -79,7 +79,7 @@
 // scroll
 .vop-scroll{
   &::-webkit-scrollbar{
-    width: 10px;
+    width: 5px;
     height: 1px;
   }
   &::-webkit-scrollbar-thumb {
@@ -187,15 +187,7 @@
       }
     }
   }
-  
-  .el-divider{
-    .el-divider--horizontal{
-      margin: 12px 0;
-    }
-  }
-  .toolbar{
-    z-index: 5;
-  }
+
   .page-body{
     height: 100%;
     overflow-y: auto;
@@ -248,7 +240,7 @@
         width: 200px;
       }
       .el-table__body td,.el-table__body th{
-        border-bottom: 1px solid;
+        border-bottom: 1Px solid;
       }
       .el-table--enable-row-hover .el-table__body tr:hover>td{
         transform: scale(1.02);
@@ -344,7 +336,7 @@
             .operate-wrap{
               display: flex;
               justify-content: space-between;
-              .o-play, .o-star, .o-share{
+              .o-play, .o-star{
                 cursor: pointer;
                 display: inline-block;
                 width: 80px;
@@ -381,6 +373,15 @@
     }
   }
   
+  .el-divider{
+    .el-divider--horizontal{
+      margin: 12px 0;
+    }
+  }
+  .toolbar{
+    z-index: 5;
+  }
+  
   .listpage-body{
     height: calc(100% - 60px);
     overflow-y: auto;
@@ -413,6 +414,7 @@
       .el-table__body-wrapper{
         height: 100%;
         width: 100%;
+        
         &::-webkit-scrollbar{
           width: 5px;
           height: 1px;
@@ -529,7 +531,7 @@
             .operate-wrap{
               display: flex;
               justify-content: space-between;
-              .o-play, .o-star, .o-share{
+              .o-play, .o-star{
                 cursor: pointer;
                 display: inline-block;
                 width: 80px;
@@ -704,7 +706,7 @@
                 .operate-wrap{
                   display: flex;
                   justify-content: space-between;
-                  .o-play, .o-star, .o-share{
+                  .o-play, .o-star{
                     cursor: pointer;
                     display: inline-block;
                     width: 80px;

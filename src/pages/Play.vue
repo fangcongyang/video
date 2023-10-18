@@ -87,6 +87,17 @@
         </span>
         <span
           class="zy-svg"
+          v-if="movieParseUrlInfo.vipPlay"
+          @click="() => {
+            playerInfo.right.type = 'movieParseSources';
+            playerInfo.right.show = true;
+          }"
+          :class="playerInfo.right.type === 'movieParseSources' ? 'active' : ''"
+        >
+          <svg-icon name="play-line" size="22" title="切换线路"></svg-icon>
+        </span>
+        <span
+          class="zy-svg"
           @click="moviesListEvent"
           :class="playerInfo.right.type === 'movieList' ? 'active' : ''"
           v-show="moviesInfo.moviesList.length > 0"
@@ -114,13 +125,6 @@
           v-show="moviesInfo.moviesList.length > 0"
         >
           <svg-icon name="play-detail" size="22" title="详情"></svg-icon>
-        </span>
-        <span
-          class="zy-svg"
-          @click="shareEvent"
-          v-show="moviesInfo.moviesList.length > 0"
-        >
-          <svg-icon name="play-share" size="22" title="分享"></svg-icon>
         </span>
         <span
           class="zy-svg"
@@ -247,7 +251,7 @@
             v-if="playerInfo.right.type === 'shortcut'"
           >
             快捷键指南{{
-              video.playType === "iptv" ? "(直播时部分功能不可用)" : ""
+              playInfo.playType === "iptv" ? "(直播时部分功能不可用)" : ""
             }}
           </span>
           <span class="list-top-title" v-if="playerInfo.right.type === 'other'"
@@ -256,7 +260,12 @@
           <span
             class="list-top-title"
             v-if="playerInfo.right.type === 'sources'"
-            >该频道可用源</span
+            >频道可用线路</span
+          >
+          <span
+            class="list-top-title"
+            v-if="playerInfo.right.type === 'movieParseSources'"
+            >可用线路</span
           >
           <span class="list-top-close zy-svg" @click="closeListEvent">
             <svg-icon name="close" title="关闭"></svg-icon>
@@ -389,19 +398,27 @@
             class="list-channels"
             v-ClickOutside="closeListEvent"
           >
-            <li v-if="sourcePlayList.length === 0">当前频道已关闭</li>
-            <li v-for="(channel, index) in sourcePlayList" :key="index">
-              <span @click="playChannel(channel)" class="title">{{
-                channel.id === channelId
-                  ? channel.name + "[当前]"
-                  : channel.name
+            <li v-if="currentChannel.channels.length === 0">当前频道已关闭</li>
+            <li v-for="(channel, index) in currentChannel.channels" :key="index">
+              <span @click="playInfo.iptv.channelActive = channel.id" class="title" :style="channel.status == '可用' ? {} : {color: 'red'}">{{
+                playInfo.iptv.channelActive === channel.id
+                  ? channel.label + "[当前]"
+                  : channel.label
               }}</span>
-              <span
-                @click="disableChannel(channel)"
-                class="btn"
-                title="关闭频道"
-                >隐藏</span
-              >
+            </li>
+          </ul>
+          <ul
+            v-if="playerInfo.right.type === 'movieParseSources'"
+            class="list-channels"
+            v-ClickOutside="closeListEvent"
+          >
+            <li v-if="movieParseUrlList.length === 0">当前频道已关闭</li>
+            <li v-for="(movieParseUrl, index) in movieParseUrlList" :key="index">
+              <span @click="movieParseUrlInfo.activeMovieParseId = movieParseUrl.id" class="title">{{
+                movieParseUrlInfo.activeMovieParseId === movieParseUrl.id
+                  ? "线路" + (index + 1) + "[当前]"
+                  : "线路" + (index + 1)
+              }}</span>
             </li>
           </ul>
         </div>
@@ -481,7 +498,7 @@ import moviesApi from "@/api/movies";
 import { ElMessage, ClickOutside } from "element-plus";
 import mt from "mousetrap";
 import PinyinMatch from "pinyin-match";
-import { _ as lodash } from "lodash";
+import { _ } from "lodash";
 import { storeToRefs } from "pinia";
 import { MoviesPlayer, getPlayerType, getIsVipMovies } from "@/business/play";
 import { invoke } from "@tauri-apps/api/tauri";
@@ -548,6 +565,9 @@ export default defineComponent({
       playerConf,
       shortcutList,
       systemConf,
+      movieParseUrlList,
+      movieParseUrl,
+      movieParseUrlInfo
     } = storeToRefs(coreStore);
 
     const iptvStore = useIptvStore();
@@ -556,8 +576,6 @@ export default defineComponent({
       currentChannel,
       channelGroupList,
       channelGroupTree,
-      sourcePlayList,
-      channelId,
     } = storeToRefs(iptvStore);
 
     const movieStore = useMovieStore();
@@ -595,24 +613,17 @@ export default defineComponent({
       }
     };
 
-    const playChannel = (channelGroup) => {
+    const playChannel = () => {
       moviesInfo.moviesList = [];
       let channel;
-      if (channelGroup.channels) {
-        if (channelId.value) {
-          channel = lodash.find(channelGroup.channels, { id: channelId.value });
-        }
-        if (!channel) {
-          channel = channelGroup.channels.filter((e) => e.active)[0];
-          channelId.value = channel.id;
-        }
+      playInfo.value.name = currentChannel.value.channel_name;
+      if (currentChannel.value.channels) {
+        channel = _.find(currentChannel.value.channels, { id: playInfo.value.iptv.channelActive });
       } else {
         return;
       }
 
-      iptvInfo.changingIPTV = true; // 避免二次执行playChannel
-      playInfo.value.iptv.channelGroupId = channel.channelGroupId;
-      playInfo.value.name = channelGroup.name;
+      iptvInfo.changingIPTV = true;
       getPlayer(channel.url);
       player.dp.switchVideo({
         url: channel.url,
@@ -623,7 +634,8 @@ export default defineComponent({
 
     const handleNodeClick = (node) => {
       if (node.channelGroup) {
-        playChannel(node.channelGroup);
+        playInfo.value.iptv.channelGroupId = node.channelGroup.id;
+        playInfo.value.iptv.channelGroupId = node.channelGroup.channel_active;
       }
     };
 
@@ -732,10 +744,9 @@ export default defineComponent({
             moviesInfo.exportablePlaylist = true;
           if (!url.endsWith(".m3u8") && !url.endsWith(".mp4")) {
             if (getIsVipMovies(url)) {
-              const websiteParseList = await invoke("select_website_parse", {});
               ElMessage.info("即将调用解析接口播放，请等待...");
-              playInfo.value.movie.onlineUrl =
-                websiteParseList[0].websiteParseUrl + url;
+              movieParseUrlInfo.value.vipPlay = true;
+              playInfo.value.movie.onlineUrl = movieParseUrl.websiteParseUrl + url;
             } else {
               playInfo.value.movie.onlineUrl = url;
             }
@@ -821,7 +832,7 @@ export default defineComponent({
     // 播放下一集
     const prevNextEvent = (isReverse = false) => {
       if (playInfo.value.playType === "iptv") {
-        let index = lodash.findIndex(channelGroupList.value, [
+        let index = _.findIndex(channelGroupList.value, [
           "id",
           playInfo.value.iptv.channelGroupId,
         ]);
@@ -831,7 +842,8 @@ export default defineComponent({
           index = index === channelGroupList.value.length - 1 ? 0 : index + 1;
         }
         const channel = channelGroupList.value[index];
-        playChannel(channel);
+        playInfo.value.iptv.channelGroupId = channel.id;
+        playInfo.value.iptv.channelActive = channel.channel_active;
       } else if (playInfo.value.playType === "localMovie") {
         
       } else {
@@ -897,7 +909,7 @@ export default defineComponent({
 
       dp.on(
         "playing",
-        lodash.once(() => {
+        _.once(() => {
           if (playInfo.value.movie.siteKey) {
             const key = playMovieUq.value;
             player.setHighlightByName(
@@ -954,7 +966,7 @@ export default defineComponent({
 
       dp.on(
         "volumechange",
-        lodash.debounce(async () => {
+        _.debounce(async () => {
           playerConf.value.volume = player.dp.video.volume;
           updatePlayerConf();
         }, 500)
@@ -987,7 +999,7 @@ export default defineComponent({
           !playInfo.value.movie.siteKey &&
           !playInfo.value.iptv.channelGroupId
         ) {
-          if (playInfo.value.playType == "movieOnline" && !playInfo.value.movie.ids) {
+          if (playInfo.value.playType == "onlineMovie" && !playInfo.value.movie.ids) {
             await refreshHistoryList();
             // 如果当前播放页面的播放信息没有被赋值,播放历史记录
             if (historyList.value.length === 0) {
@@ -1001,7 +1013,7 @@ export default defineComponent({
             playInfo.value.name = historyItem.name;
             playInfo.value.movie.index = historyItem.index;
           } else if (playInfo.value.playType === "iptv") {
-            playChannel(currentChannel.value);
+            playChannel();
             iptvInfo.showChannelGroupList = false;
           }
         }
@@ -1009,7 +1021,7 @@ export default defineComponent({
 
       dp.on(
         "ended",
-        lodash.debounce(() => {
+        _.debounce(() => {
           if (
             moviesInfo.moviesList.length > 1 &&
             moviesInfo.moviesList.length - 1 > playInfo.value.movie.index
@@ -1102,10 +1114,7 @@ export default defineComponent({
         playerInfo.right.type = "";
       } else {
         playerInfo.right.show = true;
-        shortcut.all().then((res) => {
-          playerInfo.right.type = "shortcut";
-          playerInfo.right.shortcut = res;
-        });
+        playerInfo.right.type = "shortcut";
       }
     };
 
@@ -1145,11 +1154,7 @@ export default defineComponent({
       if (statStr) {
         await invoke("del_star", JSON.parse(statStr).id);
         moviesInfo.isStar = false;
-        ElMessage({
-          showClose: true,
-          message: "取消收藏成功",
-          type: "success",
-        });
+        ElMessage.success("取消收藏成功");
       } else {
         const star = {
           name: playInfo.value.name,
@@ -1158,7 +1163,7 @@ export default defineComponent({
           detail: JSON.stringify(movieDetailCache.value[playMovieUq.value]),
         };
         await invoke("save_star", { star: star });
-        ElMessage({ showClose: true, message: "收藏成功", type: "success" });
+        ElMessage.success("收藏成功");
         moviesInfo.isStar = true;
       }
     };
@@ -1211,7 +1216,8 @@ export default defineComponent({
       if (playInfo.value.playType == "iptv") {
         const channel = channelGroupList.value[n];
         // 是直播源，直接播放
-        playChannel(channel);
+        playInfo.value.iptv.channelGroupId = channel.id;
+        playInfo.value.iptv.channelActive = channel.channel_active;
       } else if (playInfo.value.playType == "localMovie") {
         const movie = downloadList.value[n];
         playInfo.value.download.downloadId = movie.id;
@@ -1276,17 +1282,6 @@ export default defineComponent({
       return PinyinMatch.match(data.label, value);
     };
 
-    const disableChannel = (channel) => {
-      const index = this.right.sources.indexOf(channel);
-      this.right.sources.splice(index, 1);
-      const ele = this.channelList.find((e) => e.id === channel.channelID);
-      const origin = ele.channels.find((e) => e.id === channel.id);
-      origin.isActive = false;
-      ele.isActive = ele.channels.some((e) => e.isActive);
-      channelList.remove(ele.id);
-      channelList.add(ele);
-    };
-
     const exportM3u8 = () => {
       const m3u8Arr = [];
       for (const i of moviesInfo.moviesList) {
@@ -1331,6 +1326,10 @@ export default defineComponent({
     };
 
     const mtEvent = () => {
+      if (!systemConf.value.shortcutEnabled) {
+        mt.reset();
+        return;
+      }
       if (systemConf.value.shortcutModified) mt.reset();
       shortcutList.value.forEach((shortcut) => {
         mt.bind(shortcut.key, () => {
@@ -1440,7 +1439,7 @@ export default defineComponent({
         if (playInfo.value.playType == "localMovie")
           return playInfo.value.download.downloadId;
         if (playInfo.value.playType == "iptv")
-          return playInfo.value.iptv.channelGroupId;
+          return playInfo.value.iptv.channelGroupId + "@" + playInfo.value.iptv.channelActive;
       },
       async () => {
         if (playerInfo.changingIPTV) return;
@@ -1469,6 +1468,22 @@ export default defineComponent({
             iptvInfo.showChannelGroupList = true;
           }
         }
+      },
+      { deep: true }
+    );
+
+    watch(
+      () => moviesInfo.startPosition,
+      () => {
+        leadingZero(moviesInfo.startPosition)
+      },
+      { deep: true }
+    );
+
+    watch(
+      () => moviesInfo.endPosition,
+      () => {
+        leadingZero(moviesInfo.endPosition)
       },
       { deep: true }
     );
@@ -1527,35 +1542,19 @@ export default defineComponent({
       filterNode,
       exportM3u8,
       searchTxtChange,
-      sourcePlayList,
-      channelId,
+      currentChannel,
       shortcutList,
       fmtMSS,
       localMoviesListEvent,
       downloadList,
+      movieParseUrlList,
+      movieParseUrlInfo,
     };
   },
   directives: {
     ClickOutside,
   },
 });
-
-// export default {
-//   watch: {
-//     startPosition: {
-//       handler (time) {
-//         this.leadingZero(time)
-//       },
-//       deep: true
-//     },
-//     endPosition: {
-//       handler (time) {
-//         this.leadingZero(time)
-//       },
-//       deep: true
-//     }
-//   },
-// }
 </script>
 <style>
 .dplayer {
@@ -1699,15 +1698,6 @@ export default defineComponent({
         }
       }
     }
-  }
-  .slideX-enter-active,
-  .slideX-leave-active {
-    transition: all 0.5s ease-in-out;
-  }
-  .slideX-enter,
-  .slideX-leave-to {
-    transform: translateX(100%);
-    opacity: 0;
   }
 }
 </style>

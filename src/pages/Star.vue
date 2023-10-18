@@ -136,15 +136,15 @@
           </el-table-column>
           <el-table-column width="120" label="源站">
             <template #default="scope">
-              <span>{{ getSiteNameByKey(scope.row.siteKey) }}</span>
+              <span>{{ getSiteNameByKey(scope.row.site_key) }}</span>
             </template>
           </el-table-column>
           <el-table-column
             sortable
             :sort-method="
-              (a, b) => sortByLocaleCompare(a.movieType, b.movieType)
+              (a, b) => sortByLocaleCompare(a.movie_type, b.movie_type)
             "
-            prop="movieType"
+            prop="movie_type"
             label="类型"
             width="100"
           >
@@ -161,8 +161,8 @@
           </el-table-column>
           <el-table-column
             sortable
-            sort-by="doubanRate"
-            prop="doubanRate"
+            sort-by="douban_rate"
+            prop="douban_rate"
             width="120"
             align="center"
             label="豆瓣评分"
@@ -177,9 +177,6 @@
             <template #default="scope">
               <el-button @click.stop="playEvent(scope.row)" link
                 >播放</el-button
-              >
-              <el-button @click.stop="shareEvent(scope.row)" link
-                >分享</el-button
               >
               <el-button
                 @click.stop="
@@ -245,7 +242,6 @@
                 <div class="operate">
                   <div class="operate-wrap">
                     <span class="o-play" @click="playEvent(item)">播放</span>
-                    <span class="o-share" @click="shareEvent(item)">分享</span>
                     <span
                       class="o-star"
                       @click="
@@ -638,14 +634,6 @@ export default defineComponent({
       starInfo.multipleSelection = rows;
     };
 
-    const shareEvent = (star) => {
-      this.share = {
-        show: true,
-        siteKey: star.siteKey,
-        info: e.detail,
-      };
-    };
-
     const onContextMenu = (e) => {
       e.preventDefault();
       starInfo.options.x = e.x;
@@ -700,7 +688,6 @@ export default defineComponent({
       sortByLocaleCompare,
       selectionCellClick,
       handleSelectionChange,
-      shareEvent,
       onContextMenu,
       areaClick,
       typeClick,

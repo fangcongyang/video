@@ -50,10 +50,9 @@
 			<el-table-column label="ID" prop="id" width="70px" align="center" />
           <el-table-column type="selection" v-if="siteInfo.enableBatchEdit">
           </el-table-column>
-          <el-table-column class="siteTableName" prop="name" label="资源名"> </el-table-column>
+          <el-table-column class="siteTableName" prop="name" label="资源名" width="200" > </el-table-column>
           <el-table-column
             prop="isActive"
-            width="120"
             :filters="[
               { text: '启用', value: '1' },
               { text: '停用', value: '0' },
@@ -83,7 +82,6 @@
             label="状态"
             sortable
             :sort-by="['status']"
-            width="120"
           >
             <template #default="scope">
               <span v-if="scope.row.status === ' '">

@@ -29,7 +29,6 @@
           <span @click="playEvent(detailInfo.selectedEpisode)">播放</span>
           <span @click="starEvent(info)">收藏</span>
           <span @click="downloadEvent">下载</span>
-          <span @click="shareEvent(info, info.index)">分享</span>
           <span @click="doubanLinkEvent">豆瓣</span>
         </div>
         <div class="desc" v-show="info.des">{{info.des}}</div>
@@ -74,7 +73,6 @@
                       <div class="operate-wrap">
                         <span class="o-play" @click="playRecommendationEvent(item)">播放</span>
                         <span class="o-star" @click="starEvent(item)">收藏</span>
-                        <span class="o-share" @click="shareEvent(item, 0)">分享</span>
                       </div>
                     </div>
                   </div>
@@ -317,14 +315,6 @@ export default defineComponent({
 });
 // export default {
 //   methods: {
-//     shareEvent (info, selectedEpisode) {
-//       this.share = {
-//         show: true,
-//         key: this.detail.key,
-//         info: info,
-//         index: selectedEpisode
-//       }
-//     },
 //     doubanLinkEvent () {
 //       const name = this.info.name.trim()
 //       const year = this.info.year

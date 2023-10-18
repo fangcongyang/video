@@ -188,9 +188,6 @@
               <el-button @click.stop="playEvent(scope.row)" link
                 >播放</el-button
               >
-              <el-button @click.stop="shareEvent(scope.row)" link
-                >分享</el-button
-              >
               <el-button @click.stop="downloadEvent(scope.row)" link
                 >下载</el-button
               >
@@ -242,7 +239,6 @@
                 <div class="operate">
                   <div class="operate-wrap">
                     <span class="o-play" @click="playEvent(item)">播放</span>
-                    <span class="o-share" @click="shareEvent(item)">分享</span>
                     <span class="o-star" @click="downloadEvent(item)"
                       >下载</span
                     >
@@ -588,14 +584,6 @@ export default defineComponent({
       updateHistoryList();
     };
 
-    const shareEvent = (e) => {
-      this.share = {
-        show: true,
-        key: e.site,
-        info: e.detail,
-      };
-    };
-
     const downloadEvent = (history) => {
       downloadMovie(getSiteByKey(history.siteKey), history.ids);
     };
@@ -720,7 +708,6 @@ export default defineComponent({
       updateAllEvent,
       downloadEvent,
       getSiteByKey,
-      shareEvent,
       deleteEvent,
       detailEvent,
       selectionCellClick,

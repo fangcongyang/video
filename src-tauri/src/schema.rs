@@ -37,3 +37,31 @@ diesel::table! {
         position -> Double,
     }
 }
+
+diesel::table! {
+    shortcut (id) {
+        id -> Nullable<Integer>,
+        key -> Text,
+        name -> Text,
+        desc -> Text,
+    }
+}
+
+diesel::table! {
+    channel_group (id) {
+        id -> Nullable<Integer>,
+        channel_name -> Text,
+        channel_group_name -> Text,
+        channel_active -> Text,
+        channel_status -> Text,
+        position -> Nullable<Double>,
+        channels -> Text,
+    }
+}
+
+diesel::table! {
+    search_record (id) {
+        id -> Nullable<Integer>,
+        keywords -> Text,
+    }
+}

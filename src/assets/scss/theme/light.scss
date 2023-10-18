@@ -413,6 +413,59 @@
           background: var(--l-bgc-1);
         }
       }
+      /* 设置el-table的样式*/
+      .show-table{
+        .el-table{
+          color: var(--l-fc-1);
+          background-color: var(--l-bgc-1);
+        }
+        .el-table__body-wrapper{
+          &:hover{
+            &::-webkit-scrollbar-thumb {
+              box-shadow: var(--l-bsc-scroll);
+              background: var(--l-c-5);
+            }
+            &::-webkit-scrollbar-track {
+              box-shadow: var(--l-bsc-scroll);
+              background: var(--l-bgc-1);
+            }
+          }
+        }
+       .el-input{
+          .el-input__wrapper {
+            background-color: var(--l-bgc-2);
+            color: var(--l-fc-1);
+          }
+          input{
+            color: var(--l-fc-1);
+          }
+        }
+        .el-table__header th, .el-table__header tr, .el-table__body td,.el-table__body th{
+          color: var(--l-fc-1);
+          background-color: var(--l-bgc-1);
+          border-bottom-color: var(--l-c-2);
+        }
+        .el-table--enable-row-hover .el-table__body tr:hover>td{
+          background-color: var(--l-bgc-2);
+        }
+        .el-button{
+          color: var(--l-fc-1);
+          &:hover{
+            color: var(--l-fc-3)
+          }
+        }
+      }
+      .show-picture{
+        color: var(--l-fc-1);
+        .card{
+          background-color: var(--l-bgc-3);
+          box-shadow: var(--l-bsc);
+          transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+          &:hover{
+            box-shadow: var(--l-bsc-hover);
+          }
+        }
+      }
     }
     .listpage-body{
       color: var(--l-fc-1);

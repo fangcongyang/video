@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia';
 import { invoke } from "@tauri-apps/api/tauri";
-import { _ as lodash } from 'lodash';
 import { useCoreStore } from './index';
 
 export const useIptvStore = defineStore('iptv', {
@@ -9,7 +8,6 @@ export const useIptvStore = defineStore('iptv', {
         init: {
           channelGroupListInit: false,
         },
-        channelId: 0,
         channelGroupList: [],
         channelList: [],
         channelGroupMap: {},
@@ -37,29 +35,28 @@ export const useIptvStore = defineStore('iptv', {
         let channelGroupName;
         for (let channelGroup of channelGroupList) {
           let channels = JSON.parse(channelGroup.channels);
-          channelGroup.hasChildren = channelGroup.hasChildren == '1';
           channelGroup["channels"] = channels;
-          channelGroupName = channelGroup.channelGroup
-          this.channelGroupMap[channelGroup.name + channelGroupName] = channelGroup;
+          channelGroupName = channelGroup.channel_group_name;
+          this.channelGroupMap[channelGroup.channel_name + channelGroupName] = channelGroup;
 
           // 获取表格分组名称筛选
           if (!channelGroupFilterMap[channelGroupName]) {
-            channelGroupFilterMap[channelGroup.channelGroup] = "1";
+            channelGroupFilterMap[channelGroup.channel_group_name] = "1";
             this.channelGroupFilter.push({ text: channelGroupName, value: channelGroupName })
           }
           
           for (let channel of channelGroup.channels) {
-            channel["name"] = channelGroup["name"];
+            channel["name"] = channelGroup["channel_name"];
             channel["channelGroupId"] = channelGroup["id"];
             this.channelList.push(channel);
             this.channelMap[channel.url] = channel;
           }
         }
-        const channelGroups = [...new Set(channelGroupList.map(iptv => iptv.channelGroup))]
+        const channelGroups = [...new Set(channelGroupList.map(iptv => iptv.channel_group_name))]
         channelGroups.forEach(cg => {
           const doc = {
             label: cg,
-            children: channelGroupList.filter(x => x.channelGroup === cg).map(i => { return { label: i.name, channelGroup: i } })
+            children: channelGroupList.filter(x => x.channel_group_name === cg).map(i => { return { label: i.channel_name, channel_group_name: i } })
           }
           this.channelGroupTree.push(doc)
         })
@@ -70,10 +67,6 @@ export const useIptvStore = defineStore('iptv', {
       currentChannel() { 
         const core = useCoreStore();
         return this.channelGroupList.filter(item => item.id == core.playInfo.iptv.channelGroupId)[0];
-      },
-      sourcePlayList() {
-        const core = useCoreStore();
-        return lodash.find(this.channelGroupList, { id: core.playInfo.iptv.channelGroupId }).channels;
       },
     }
   })

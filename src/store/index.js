@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { invoke } from "@tauri-apps/api/tauri";
 import { ElMessage } from "element-plus";
+import { _ } from 'lodash';
 
 export const useCoreStore = defineStore('core', {
     state: () => {
@@ -32,6 +33,7 @@ export const useCoreStore = defineStore('core', {
           encryptedPassword: "",
           downloadSavePath: "",
           ffmpegPath: "",
+          shortcutEnabled: true,
         },
         playerConf: {
           volume: 0.6,
@@ -40,7 +42,7 @@ export const useCoreStore = defineStore('core', {
           forwardTimeInSec: 5,
         },
         shortcutList: [],
-        shiftDown: false,
+        shiftDown: true,
         playInfo: {
           // iptv onlineMovie localMovie
           playType: "onlineMovie",
@@ -48,6 +50,7 @@ export const useCoreStore = defineStore('core', {
           name: "",
           iptv: {
             channelGroupId: 0,
+            channelActive: "",
           },
           download: {
             downloadId: 0,
@@ -63,6 +66,10 @@ export const useCoreStore = defineStore('core', {
           }
         },
         movieParseUrlList: [],
+        movieParseUrlInfo: {
+          activeMovieParseId: 0,
+          vipPlay: false,
+        }
       }
     },
     actions:{
@@ -160,6 +167,12 @@ export const useCoreStore = defineStore('core', {
       },
       playMovieParams() {
         return { siteKey: this.playInfo.movie.siteKey, ids: this.playInfo.movie.ids.toString() };
-      }
+      },
+      movieParseUrl() {
+        if (!this.activeMovieParseId) {
+          this.activeMovieParseId = this.movieParseUrlList[0].id;
+        }
+        return _.find(this.movieParseUrlList, { id: this.activeMovieParseId })
+      },
     }
   })

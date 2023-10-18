@@ -4,23 +4,6 @@
       v-model:show="iptvInfo.contextMenushow"
       :options="iptvInfo.options"
     >
-      <context-menu-item label="批量启用" @click="() => {
-          iptvInfo.batchIsActive = '1';
-          saveBatchEdit();
-        }">
-        <template #icon>
-          <el-icon><Open /></el-icon>
-        </template>
-      </context-menu-item>
-      <context-menu-item label="批量禁用" @click="() => {
-          iptvInfo.batchIsActive = '0';
-          saveBatchEdit();
-        }">
-        <template #icon>
-          <el-icon><TurnOff /></el-icon>
-        </template>
-      </context-menu-item>
-      <context-menu-sperator />
       <context-menu-item label="导出" @click="exportChannels()">
         <template #icon>
           <el-icon>
@@ -35,6 +18,7 @@
           </el-icon>
         </template>
       </context-menu-item>
+      <context-menu-sperator />
       <context-menu-item label="检测" @click="checkAllChannels()">
         <template #icon>
           <el-icon>
@@ -67,9 +51,6 @@
           row-key="id"
           :data="filteredTableData"
           lazy
-          :load="(row, treeNode, resolve) => resolve(row.channels)"
-          :tree-props="{ hasChildren: 'hasChildren' }"
-          @expand-change="expandChange"
           @select="selectionCellClick"
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
@@ -78,7 +59,7 @@
           </el-table-column>
           <el-table-column
             default-sort="ascending"
-            prop="name"
+            prop="channel_name"
             label="频道名"
           >
             <template #header>
@@ -92,53 +73,56 @@
             </template>
           </el-table-column>
           <el-table-column
-            prop="active"
-            width="120"
-            align="center"
-            :filters="[
-              { text: '启用', value: '1' },
-              { text: '停用', value: '0' },
-            ]"
-            :filter-method="(value, row) => value === row.active"
-            label="启用"
-          >
-            <template #default="scope">
-              <el-switch
-                v-model="scope.row.active"
-                active-value="1"
-                inactive-value="0"
-                @click.native.stop="isActiveChangeEvent(scope.row)"
-              >
-              </el-switch>
-            </template>
-          </el-table-column>
-          <el-table-column
+            width="100"
             sortable
             :sort-method="
-              (a, b) => sortByLocaleCompare(a.channelGroup, b.channelGroup)
+              (a, b) => sortByLocaleCompare(a.channel_group_name, b.channel_group_name)
             "
-            prop="channelGroup"
+            prop="channel_group_name"
             label="分组"
             :filters="channelGroupFilter"
-            :filter-method="(value, row) => value === row.channelGroup"
+            :filter-method="(value, row) => value === row.channel_group_name"
             filter-placement="bottom-end"
           >
             <template #default="scope">
-              <el-button link>{{ scope.row.channelGroup }}</el-button>
+              <el-button link>{{ scope.row.channel_group_name }}</el-button>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="active"
+            :filter-method="(value, row) => value === row.channel_active"
+            label="线路"
+          >
+            <template #default="scope">
+              <el-select v-model="scope.row.channel_active" placeholder="选择线路" 
+                @change="channelActiveChangeEvent(scope.row)">
+                <el-option
+                  v-for="item in scope.row.channels"
+                  :key="item.id"
+                  :label="item.label"
+                  :value="item.id"
+                >
+                  <span :style="item.status == '可用' ? {float: 'left'} : {float: 'left', color: 'red'}">{{ item.label }}</span>
+                  <div style="font-size: 12Px; height: 100%; display: flex; align-items: center; justify-content: flex-end;" 
+                    @click.stop="removeChannelEvent(item, scope.row)">
+                    <Close style="float: right; width: 14Px; height: 14Px;"/>
+                  </div>
+                </el-option>
+              </el-select>
             </template>
           </el-table-column>
           <el-table-column
             label="状态"
             sortable
-            :sort-by="['status']"
-            width="120"
+            :sort-by="['channel_status']"
+            width="100"
           >
             <template #default="scope">
-              <span v-if="scope.row.status === ' '">
+              <span v-if="scope.row.channel_status === ' '">
                 <i class="el-icon-loading"></i>
                 检测中...
               </span>
-              <span v-else>{{ scope.row.status }}</span>
+              <span v-else>{{ scope.row.channel_status }}</span>
             </template>
           </el-table-column>
           <el-table-column label="操作" align="right" :width="240">
@@ -148,12 +132,6 @@
               }}</span>
             </template>
             <template #default="scope">
-              <el-button
-                @click.stop="moveToTopEvent(scope.row)"
-                link
-                v-if="scope.row.channels"
-                >置顶</el-button
-              >
               <el-button @click.stop="playEvent(scope.row)" link
                 >播放</el-button
               >
@@ -241,6 +219,9 @@ import { Refresh, DataLine, Search } from "@element-plus/icons-vue";
 import Sortable from 'sortablejs'
 import ContextMenu from '@imengyu/vue3-context-menu';
 import { useDark } from "@vueuse/core";
+import {
+  Close
+} from "@element-plus/icons-vue";
 
 export default defineComponent({
   name: "Iptv",
@@ -250,12 +231,10 @@ export default defineComponent({
     const isDark = useDark();
 
     const iptvInfo = reactive({
-      batchIsActive: false,
       checkAllChannelsLoading: false,
       importChannelVisible: false,
       parseM3uUrl: "",
       searchTxt: "",
-      expandedRows: [],
       checkProgress: 0,
       stopFlag: false,
       selectionBegin: "",
@@ -299,26 +278,19 @@ export default defineComponent({
       if (filePath !== null) {
         if (filePath.endsWith("m3u")) {
           const m3uGenerate = new M3uGenerate();
-          channelList.value.forEach((e) => {
-            m3uGenerate.appendM3u(-1, e.name, e.url);
-          });
+          channelGroupList.value.forEach((channelGroup) => {
+            channelGroup.channels.forEach((e) => {
+              m3uGenerate.appendM3u(-1, channelGroup.channel_name, e.url);
+            });
+          })
           await writeTextFile(filePath, m3uGenerate.toString());
-          ElMessage({
-            showClose: true,
-            message: "已保存成功",
-            type: "success",
-          });
         } else {
           if (!filePath.endsWith(".json")) filePath += ".json";
           const arr = [...channelList.value];
           const str = JSON.stringify(arr, null, 2);
           await writeTextFile(filePath, str);
-          ElMessage({
-            showClose: true,
-            message: "已保存成功",
-            type: "success",
-          });
         }
+        ElMessage.success("保存成功");
       }
     };
 
@@ -339,10 +311,8 @@ export default defineComponent({
           if (i.includes("http") && validityIptvUrl(url)) {
             const j = i.split(",");
             const doc = {
-              id: _.uniqueId("channel_"),
               name: j[0],
               url: j[1],
-              ative: "1",
               status: "可用",
             };
             docs.push(doc);
@@ -387,10 +357,8 @@ export default defineComponent({
               if (ele.name && url && validityIptvUrl(url)) {
                 // 网址可能带参数
                 const doc = {
-                  id: _.uniqueId("channel_"),
                   name: ele.name,
                   url: url,
-                  ative: "1",
                   status: "可用",
                 };
                 docs.push(doc);
@@ -421,10 +389,8 @@ export default defineComponent({
               if (i.includes("http")) {
                 const j = i.split(",");
                 const doc = {
-                  id: 0,
                   name: j[0],
                   url: j[1],
-                  ative: "1",
                   status: "可用",
                 };
                 docs.push(doc);
@@ -450,10 +416,8 @@ export default defineComponent({
         return;
       }
       const doc = {
-        id: 0,
         name: row.iptvName,
         url: row.iptvUrl,
-        active: "1",
         status: "可用",
       };
       addChannelList([doc]);
@@ -467,8 +431,6 @@ export default defineComponent({
           .replace(/[- ]?(1080p|蓝光|超清|高清|标清|hd|cq|4k)(\d{1,2})?$/i, "");
         if (channelName.match(/cctv/i))
           channelName = channelName.replace("-", "");
-        item.active = "1";
-        item.status = "可用";
         if (uniqueChannelName[channelName]) {
           !uniqueChannelName[channelName].includes(item) &&
             uniqueChannelName[channelName].push(item);
@@ -483,13 +445,9 @@ export default defineComponent({
           let channelGroup = channelGroupMap.value[e + channelGroupName];
           if (!channelGroup) {
             channelGroup = {
-              id: 0,
-              name: e,
-              active: uniqueChannelName[e].some((c) => c.active === "1")
-                ? "1"
-                : "0",
-              status: "可用",
-              channelGroup: channelGroupName,
+              channel_name: e,
+              channel_status: "可用",
+              channel_group_name: channelGroupName,
               channels: [],
             };
             channelGroupMap.value[e + channelGroupName] = channelGroup;
@@ -500,14 +458,17 @@ export default defineComponent({
           let id = 1;
           channelGroup.channels.forEach((channel) =>{
             channel.id = id.toString();
+            channel.label = "线路" + channel.id;
             id += 1;
           })
-          channelGroup.hasChildren = channelGroup.channels.length > 1 ? "1" : "0";
+          channelGroup.channel_active = channelGroup.channels[0].id;
+          channelGroup.channels = JSON.stringify(channelGroup.channels);
           return channelGroup;
         });
         
         await invoke("save_channel_groups", { channelGroups: channelGroupList });
         refreshChannelGroupList();
+        ElMessage.success("添加资源成功");
       }
       iptvInfo.importChannelVisible = false;
     };
@@ -516,7 +477,7 @@ export default defineComponent({
     const filteredTableData = computed(() => {
       if (iptvInfo.searchTxt) {
         return channelGroupList.value.filter((x) =>
-          x.name.toLowerCase().includes(iptvInfo.searchTxt.toLowerCase())
+          x.channel_name.toLowerCase().includes(iptvInfo.searchTxt.toLowerCase())
         );
       } else {
         return channelGroupList.value;
@@ -540,29 +501,10 @@ export default defineComponent({
       iptvInfo.showOnlineSearch = true;
     };
 
-    const expandChange = (row, expanded) => {
-      const index = iptvInfo.expandedRows.indexOf(row);
-      if (expanded && index === -1) {
-        iptvInfo.expandedRows.push(row);
-      } else if (!expanded && index !== -1) {
-        iptvInfo.expandedRows.splice(index, 1);
-      }
-    };
-
     const playEvent = (e) => {
-      let currChannelGroupId;
-      if (e.url) {
-        currChannelGroupId = e.channelGroupId;
-      } else {
-        let channel = e.channels.filter((c) => c.active)[0];
-        if (!channel) {
-          ElMessage.error("当前频道所有源已全部停用，不可播放！");
-          return;
-        }
-        currChannelGroupId = channel.channelGroupId;
-      }
       playInfo.value.playType = "iptv";
-      playInfo.value.iptv.channelGroupId = currChannelGroupId;
+      playInfo.value.iptv.channelGroupId = e.id;
+      playInfo.value.iptv.channelActive = e.channel_active;
       view.value = "Play";
     };
 
@@ -614,26 +556,22 @@ export default defineComponent({
       iptvInfo.checkAllChannelsLoading = true;
       iptvInfo.stopFlag = false;
       iptvInfo.checkProgress = 0;
-      this.channelList
+      channelList.value
         .filter((e) => e.channels.length)
         .forEach((e) => {
           e.status = " ";
           e.hasCheckedNum = 0;
         });
-      const uncheckedList = this.iptvList.filter(
+      const uncheckedList = channelList.value.filter(
         (e) => e.status === undefined || e.status === " "
       ); // 未检测过的优先
-      const other = this.iptvList.filter((e) => !uncheckedList.includes(e));
+      const other = channelList.value.filter((e) => !uncheckedList.includes(e));
       await this.checkChannelsBySite(uncheckedList);
       await this.checkChannelsBySite(other).then((res) => {
         this.checkAllChannelsLoading = false;
         refreshChannelGroupList();
         if (!iptvInfo.stopFlag)
-          ElMessage({
-            showClose: true,
-            message: "直播频道批量检测已完成！",
-            type: "success",
-          });
+          ElMessage.success("直播频道批量检测已完成！");
       });
     };
 
@@ -642,40 +580,37 @@ export default defineComponent({
         ElMessage.info("正在检测, 请勿操作.");
         return false;
       }
-      try {
-        if (row.url) {
-          // tree树形控件节点一旦展开，就不再重新加载节点数据
-          const ele = channelGroupList.value.find(
-            (e) => e.id === row.channelGroupId
-          );
-          let channelGroup = _.cloneDeep(ele);
-          _.remove(channelGroup.channels, (channel) => {
-            return channel.id == row.id;
-          });
-          if (channelGroup.channels.length) {
-            channelGroup.hasChildren = channelGroup.channels.length > 1 ? "1" : "0";
-            channelGroup.channels = JSON.stringify(channelGroup.channels);
-            await invoke("save_channel_group", { channelGroup: channelGroup });
-          } else {
-            await invoke("del_channel_group", { id: row.channelGroupId });
-          }
-        } else {
-          await invoke("del_channel_group", { id: row.id });
-        }
-        refreshChannelGroupList();
-      } catch (err) {
-        ElMessage.warning("删除频道失败, 错误信息: " + err);
-      }
+
+      await invoke("del_channel_group", { id: row.id });
+      refreshChannelGroupList();
     };
 
-    const checkChannel = (row) => {
-      if (row.channels) {
-        row.status = " ";
-        row.hasCheckedNum = 0;
-        row.channels.forEach((e) => checkSingleChannel(e, true));
-      } else {
-        checkSingleChannel(row);
+    const removeChannelEvent = async (channel, row) => {
+      if (iptvInfo.checkAllChannelsLoading) {
+        ElMessage.info("正在检测, 请勿操作.");
+        return false;
       }
+      let channelGroup = _.cloneDeep(row);
+      _.remove(channelGroup.channels, (cl) => {
+        return cl.id == channel.id;
+      });
+      
+      if (channelGroup.channels.length) {
+        channelGroup.channels = JSON.stringify(channelGroup.channels);
+        await invoke("save_channel_group", { channelGroupInfo: channelGroup });
+      } else {
+        await invoke("del_channel_group", { channelGroupId: channelGroup.id });
+      }
+      refreshChannelGroupList();
+    }
+
+    const checkChannel = async (row) => {
+      if (row.channels) {
+        row.channel_status = " ";
+        row.hasCheckedNum = 0;
+        await Promise.all(row.channels.map((e) => checkSingleChannel(e, true)))
+      }
+      ElMessage.success("检测完成");
     };
 
     const checkSingleChannel = async (channel, force = false) => {
@@ -686,46 +621,35 @@ export default defineComponent({
       const ele = channelGroupList.value.find(
         (e) => e.id === channel.channelGroupId
       );
-      if (
-        !force &&
-        systemConf.value.allowPassWhenIptvCheck &&
-        (!channel.isActive || !ele.isActive)
-      ) {
-        if (!ele.active) {
-          ele.status = "跳过";
-        } else if (!channel.isActive) {
-          channel.status = "跳过";
-        }
+      
+      const flag = await iptvApi.checkChannel(channel.url);
+      if (flag) {
+        channel.status = "可用";
       } else {
-        channel.status = " ";
-        const flag = await iptvApi.checkChannel(channel.url);
-        if (flag) {
-          channel.status = "可用";
-        } else {
-          channel.status = "失效";
-          channel.active = false;
-          if (systemConf.value.autocleanWhenIptvCheck) {
-            ele.channels.splice(
-              ele.channels.findIndex((e) => e.id === channel.id),
-              1
-            );
-            ele.hasCheckedNum--;
+        channel.status = "失效";
+        if (systemConf.value.autocleanWhenIptvCheck) {
+          ele.channels.splice(
+            ele.channels.findIndex((e) => e.id === channel.id),
+            1
+          );
+          if (ele.channel_active == channel.id) {
+            ele.channel_active = ele.channels.length > 0 ? ele.channels[0] : ""
           }
+          ele.hasCheckedNum--;
         }
       }
+
       iptvInfo.checkProgress += 1;
       ele.hasCheckedNum++;
       if (ele.hasCheckedNum === ele.channels.length) {
-        if (ele.status === " ") {
-          ele.status = ele.channels.some((channel) => channel.status === "可用")
+        if (ele.channel_status === " ") {
+          ele.channel_status = ele.channels.some((channel) => channel.status === "可用")
             ? "可用"
             : "失效";
-          if (ele.status === "失效") ele.active = false;
         }
         let channelGroup = _.cloneDeep(ele);
-        channelGroup.hasChildren = channelGroup.hasChildren ? "1" : "0";
         channelGroup.channels = JSON.stringify(channelGroup.channels);
-        await invoke("save_channel_group", { channelGroup: channelGroup });
+        await invoke("save_channel_group", { channelGroupInfo: channelGroup });
         refreshChannelGroupList();
       }
     };
@@ -733,39 +657,21 @@ export default defineComponent({
     const sortByLocaleCompare = (a, b) => {
       return a.localeCompare(b, "zh");
     };
-
-    // 批量保存编辑
-    const saveBatchEdit = async () => {
-      iptvInfo.multipleSelection.forEach((ele) => {
-        ele.hasChildren = ele.hasChildren ? "1" : "0";
-        ele.channels = JSON.stringify(ele.channels);
-        ele.active = iptvInfo.batchIsActive;
-      });
-      await invoke("save_channel_groups", {
-        channelGroups: iptvInfo.multipleSelection,
-      });
-      iptvInfo.multipleSelection = [];
-      refreshChannelGroupList();
-    };
     
-    const removeSelectedChannels = () => {
-      this.multipleSelection.forEach(e => channelList.remove(e.id))
-      this.$refs.iptvTable.clearFilter()
-      this.refreshChannelGroupList()
-      this.updateDatabase()
+    const removeSelectedChannels = async () => {
+      let channelGroupIds = iptvInfo.multipleSelection.map((item) => {
+        return item.id;
+      })
+      await invoke("del_channel_groups", { channelGroupIds: channelGroupIds });
+      iptvTableRef.value.clearFilter()
+      refreshChannelGroupList()
     }
     
-    const isActiveChangeEvent = async (row) => {
-      let channelGroup = row;
-      if (row.url) {
-        const ele = channelGroupList.value.find(e => e.id === row.channelGroupId);
-        channelGroup = ele;
-      } else {
-        if (row.channels.length === 1) row.channels[0].active = row.active
-      }
-      const channelGroupClone = lodash.cloneDeep(channelGroup);
+    const channelActiveChangeEvent = async (row) => {
+      const channelGroupClone = _.cloneDeep(row);
       channelGroupClone.channels = JSON.stringify(channelGroupClone.channels);
-      await invoke("save_channel_group", { channelGroup: channelGroupClone })
+      await invoke("save_channel_group", { channelGroupInfo: channelGroupClone })
+      refreshChannelGroupList()
     }
     
     const checkChannelsBySite = async () => {
@@ -787,19 +693,6 @@ export default defineComponent({
         await checkSingleChannel(c)
       }
     }
-    
-    const moveToTopEvent = (row) => {
-      if (iptvInfo.checkAllChannelsLoading) {
-        ElMessage.info('正在检测, 请勿操作.')
-        return false
-      }
-      // this.channelList.sort(function (x, y) { return (x.name === i.name && x.url === i.url) ? -1 : (y.name === i.name && y.url === i.url) ? 1 : 0 })
-      if (row.channels) {
-        this.channelList.splice(this.channelList.findIndex(e => e.id === row.id), 1)
-        this.channelList.unshift(row)
-        this.updateDatabase()
-      }
-    }
 
     const rowDrop = () => {
       if (iptvInfo.checkAllChannelsLoading) {
@@ -807,15 +700,33 @@ export default defineComponent({
         return false
       }
       const tbody = document.getElementById('iptv-table').querySelector('.el-table__body-wrapper tbody')
-      const _this = this
-      this.sortableTable = new Sortable(tbody, {
-        filter: '.el-table__row--level-1', // 禁止children拖动
-        onEnd ({ newIndex, oldIndex }) {
-          const currRow = _this.channelList.splice(oldIndex, 1)[0]
-          _this.channelList.splice(newIndex, 0, currRow)
-          _this.updateDatabase()
-        }
-      })
+      
+      Sortable.create(tbody, {
+        async onEnd({ newIndex, oldIndex }) {
+          console.log(newIndex, oldIndex)
+          let currChannelGroup = filteredTableData.value[oldIndex];
+          // 前第一个数据的位置
+          let prevPosition;
+          // 后第一个数据的位置
+          let nextPosition;
+          // 上移
+          if (newIndex < oldIndex) {
+            prevPosition = newIndex == 0 ? filteredTableData.value[newIndex].position + 10 : filteredTableData.value[newIndex].position;
+            nextPosition = filteredTableData.value[newIndex].position;
+          } else { // 下移
+            prevPosition = filteredTableData.value[newIndex].position;
+            nextPosition =
+              newIndex == filteredTableData.value.length - 1
+                ? 0
+                : filteredTableData.value[newIndex].position;
+          }
+          currChannelGroup.position = (prevPosition + nextPosition) / 2;
+          const channelGroupClone = _.cloneDeep(currChannelGroup);
+          channelGroupClone.channels = JSON.stringify(channelGroupClone.channels);
+          await invoke("save_channel_group", { channelGroupInfo: channelGroupClone })
+          refreshChannelGroupList()
+        },
+      });
     }
     
     const onContextMenu = (e ) => {
@@ -844,7 +755,7 @@ export default defineComponent({
     );
 
     onMounted(() => {
-      // rowDrop();
+      rowDrop();
     })
 
     return {
@@ -857,7 +768,6 @@ export default defineComponent({
       importLocalChannels,
       channelGroupFilter,
       filteredTableData,
-      expandChange,
       playEvent,
       selectionCellClick,
       handleSortChange,
@@ -869,51 +779,16 @@ export default defineComponent({
       checkSingleChannel,
       iptvTableRef,
       sortByLocaleCompare,
-      saveBatchEdit,
       showIptvOnlineSearch,
       removeSelectedChannels,
-      isActiveChangeEvent,
+      channelActiveChangeEvent,
       Search,
       checkChannelsBySite,
-      moveToTopEvent,
       addChnanel,
       onContextMenu,
+      Close,
+      removeChannelEvent,
     };
   },
 });
-// export default {
-//   data () {
-//     return {
-//       sortableTable: ''
-//     }
-//   },
-//   watch: {
-//     enableBatchEdit () {
-//       if (this.checkAllChannelsLoading) {
-//         this.$message.info('正在检测, 请勿操作.')
-//         this.enableBatchEdit = false
-//         return
-//       }
-//       if (this.enableBatchEdit) {
-//         if (this.setting.shiftTooltipLimitTimes === undefined) this.setting.shiftTooltipLimitTimes = 5
-//         if (this.setting.shiftTooltipLimitTimes) {
-//           this.$message.info('多选时支持shift快捷键')
-//           this.setting.shiftTooltipLimitTimes--
-//           setting.find().then(res => {
-//             res.shiftTooltipLimitTimes = this.setting.shiftTooltipLimitTimes
-//             setting.update(res)
-//           })
-//         }
-//         this.$nextTick(() => {
-//           this.expandedRows.forEach(e => this.$refs.iptvTable.toggleRowExpansion(e, false))
-//         })
-//         this.rowDrop()
-//       } else {
-//         this.sortableTable.destroy()
-//       }
-//     }
-//   },
-//   methods: {
-//   },
-// }
 </script>
