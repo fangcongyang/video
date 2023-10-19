@@ -338,17 +338,22 @@
       <template #footer>
         <span class="dialog-footer">
           <el-progress
-            v-show="updateInfo.downloaded != 0"
+            class="el-progress--line"
+            v-if="updateInfo.downloaded != 0"
             :color="colors"
+            :stroke-width="16"
             :percentage="percentage"
-            :indeterminate="true"
+            :text-inside="true"
           />
-          <el-button size="small" @click="closeUpdate">关闭</el-button>
-          <div v-if="updateInfo.canUpdate">
-            <el-button size="small" v-show="updateInfo.downloaded == 0" @click="startUpdate">更新</el-button>
-            <el-button size="small" v-show="updateInfo.downloaded < updateInfo.total">正在更新...</el-button>
-            <el-button size="small" v-show="updateInfo.downloaded > updateInfo.total">安装中...</el-button>
-          </div>
+          <el-space wrap style="margin-top: 10Px;">
+            <el-button size="small" @click="closeUpdate">关闭</el-button>
+            <div style="display: inline-block;" v-if="updateInfo.canUpdate">
+              <el-button size="small" v-show="updateInfo.downloaded == 0" @click="startUpdate">更新</el-button>
+              <el-button size="small" v-show="updateInfo.downloaded < updateInfo.total">正在更新...</el-button>
+              <el-button size="small" v-show="updateInfo.downloaded > updateInfo.total">安装中...</el-button>
+              <el-button size="small" v-show="updateInfo.downloaded != 0" @click="closeUpdate" >取消更新</el-button>
+            </div>
+          </el-space>
         </span>
       </template>
     </el-dialog>
@@ -555,8 +560,13 @@ export default defineComponent({
     }
 
     const openUpdate = () => {
+      updateInfo.showUpdate = true
+      if (updateInfo.downloaded < updateInfo.total) {
+        return
+      }
       checkUpdate().then(
         (update) => {
+          console.log(update)
           if (update.shouldUpdate) {
             updateInfo.showUpdate = true;
             updateInfo.body = update.manifest.body;
@@ -568,7 +578,6 @@ export default defineComponent({
         }, (e) => {
           updateInfo.body = e.toString();
         },
-        updateInfo.showUpdate = true
       );
     }
 
@@ -628,7 +637,7 @@ export default defineComponent({
       websiteParse.value = tempWebsiteParse.value;
     }
 
-    const percentage = computed(() => updateInfo.downloaded/updateInfo.total)
+    const percentage = computed(() => _.ceil(updateInfo.downloaded/updateInfo.total, 4) * 100)
 
     const updateBody = computed(() => marked.parse(updateInfo.body))
 
@@ -817,6 +826,10 @@ export default defineComponent({
   .updateBody {
     min-height: 200Px;
     max-height: 400Px;
+  }
+  
+  .el-progress--line {
+    width: 100%;
   }
 }
 </style>
