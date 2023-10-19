@@ -322,14 +322,6 @@ onMounted(() => {
 //       iptvInfo.multipleSelection = _.cloneDeep(rows);
 //     };
 
-//     const handleSortChange = (column, prop, order) => {
-//       if (iptvInfo.checkAllChannelsLoading) {
-//         ElMessage.info("正在检测, 请勿操作");
-//         return;
-//       }
-//       this.updateDatabase();
-//     };
-
 //     const sortByLocaleCompare = (a, b) => {
 //       return a.localeCompare(b, "zh");
 //     };
