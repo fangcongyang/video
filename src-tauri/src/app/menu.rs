@@ -4,17 +4,11 @@ use tauri_plugin_window_state::{AppHandleExt, StateFlags};
 
 // --- SystemTray Menu
 pub fn tray_menu() -> SystemTray {
-  if cfg!(target_os = "macos") {
-    SystemTray::new().with_menu(
-      SystemTrayMenu::new()
-        .add_item(CustomMenuItem::new("quit".to_string(), "退出")),
-    )
-  } else {
-    SystemTray::new().with_menu(
-      SystemTrayMenu::new()
-        .add_item(CustomMenuItem::new("quit".to_string(), "退出")),
-    )
-  }
+  SystemTray::new().with_menu(
+    SystemTrayMenu::new()
+      .add_item(CustomMenuItem::new("restart".to_string(), "重启应用"))
+      .add_item(CustomMenuItem::new("quit".to_string(), "退出")),
+  )
 }
 
 // --- SystemTray Event
@@ -40,6 +34,9 @@ pub fn tray_handler(handle: &AppHandle, event: SystemTrayEvent) {
       }
     }
     SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+      "restart" => {
+        tauri::api::process::restart(&handle.env())
+      },
       "quit" => {
         app.save_window_state(StateFlags::all()).expect("保存窗口状态失败"); 
         std::process::exit(0);
