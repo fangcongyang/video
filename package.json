@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "updater": "node updater/updater.mjs",
-    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s"
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.1.0",
