@@ -47,22 +47,22 @@
           @selection-change="handleSelectionChange"
           @sort-change="handleSortChange"
         >
-			<el-table-column label="ID" prop="id" width="70px" align="center" />
-          <el-table-column type="selection" v-if="siteInfo.enableBatchEdit">
+			    <el-table-column label="ID" prop="id" width="70px" align="center" />
+            <el-table-column type="selection" v-if="siteInfo.enableBatchEdit">
           </el-table-column>
-          <el-table-column class="siteTableName" prop="name" label="资源名" width="200" > </el-table-column>
+          <el-table-column class="siteTableName" prop="site_name" label="资源名" width="200" > </el-table-column>
           <el-table-column
-            prop="isActive"
+            prop="is_active"
             :filters="[
               { text: '启用', value: '1' },
               { text: '停用', value: '0' },
             ]"
-            :filter-method="(value, row) => value === row.isActive"
+            :filter-method="(value, row) => value === row.is_active"
             label="启用"
           >
             <template #default="scope">
               <el-switch
-                v-model="scope.row.isActive"
+                v-model="scope.row.is_active"
                 active-value="1"
                 inactive-value="0"
                 @click.native.stop="propChangeEvent(scope.row)"
@@ -71,10 +71,10 @@
             </template>
           </el-table-column>
           <el-table-column
-            prop="group"
+            prop="site_group"
             label="分组"
             :filters="getFilters"
-            :filter-method="(value, row) => value === row.group"
+            :filter-method="(value, row) => value === row.site_group"
             filter-placement="bottom-end"
           >
           </el-table-column>
@@ -121,8 +121,8 @@
       <el-dialog v-model="siteInfo.editSiteDialogVisible" v-if='siteInfo.editSiteDialogVisible' :title="siteInfo.dialogType==='edit'?'编辑源':'新增源'" 
         :append-to-body="true" @close="closeDialog">
         <el-form :model="site" ref='siteRef' label-width="75px" label-position="left" :rules="siteInfo.rules">
-          <el-form-item label="源站名" prop='name'>
-            <el-input v-model="site.name" placeholder="请输入源站名" />
+          <el-form-item label="源站名" prop='site_name'>
+            <el-input v-model="site.site_name" placeholder="请输入源站名" />
           </el-form-item>
           <el-form-item label="API接口" prop='api'>
             <el-input v-model="site.api" :autosize="{ minRows: 2, maxRows: 4}" type="textarea" placeholder="请输入API接口地址"/>
@@ -130,13 +130,13 @@
           <el-form-item label="下载接口" prop='download'>
             <el-input v-model="site.download" :autosize="{ minRows: 2, maxRows: 4}" type="textarea" placeholder="请输入Download接口地址，可以空着"/>
           </el-form-item>
-          <el-form-item label="分组" prop='group'>
-            <el-select v-model="site.group" allow-create filterable default-first-option placeholder="请输入分组">
+          <el-form-item label="分组" prop='site_group'>
+            <el-select v-model="site.site_group" allow-create filterable default-first-option placeholder="请输入分组">
               <el-option v-for="item in siteInfo.siteGroup" :key="item" :label="item" :value="item"></el-option>
             </el-select>
           </el-form-item>
-          <el-form-item label="源站标识" prop='key'>
-            <el-input v-model="site.key" placeholder="请输入源站标识，如果为空，系统则自动生成" />
+          <el-form-item label="源站标识" prop='site_key'>
+            <el-input v-model="site.site_key" placeholder="请输入源站标识，如果为空，系统则自动生成" />
           </el-form-item>
         </el-form>
         <span slot="footer" class="dialog-footer">

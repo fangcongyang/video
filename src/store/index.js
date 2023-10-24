@@ -166,7 +166,7 @@ export const useCoreStore = defineStore('core', {
         return this.playInfo.movie.siteKey + '@' + this.playInfo.movie.ids;
       },
       playMovieParams() {
-        return { siteKey: this.playInfo.movie.siteKey, ids: this.playInfo.movie.ids.toString() };
+        return { siteKeyStr: this.playInfo.movie.siteKey, idsStr: this.playInfo.movie.ids.toString() };
       },
       movieParseUrl() {
         if (!this.activeMovieParseId) {

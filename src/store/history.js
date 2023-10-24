@@ -13,7 +13,7 @@ export const useHistoryStore = defineStore('history', {
                 areas: [],
                 historyList: [],
             },
-            currentHistoryStr: "", 
+            localCurrentHistory: {}, 
         }
     },
     actions:{
@@ -47,7 +47,7 @@ export const useHistoryStore = defineStore('history', {
 
       async refreshCurrentHistory() {
         const core = useCoreStore()
-        this.currentHistoryStr = await invoke("get_history_by_uq", core.playMovieParams);
+        this.localCurrentHistory = await invoke("get_history_by_uq", core.playMovieParams);
       }
     },
     getters:{
@@ -64,7 +64,7 @@ export const useHistoryStore = defineStore('history', {
       },
 
       currentHistory() {
-        return this.currentHistoryStr ? JSON.parse(this.currentHistoryStr) : undefined;
-      },
+        return this.localCurrentHistory;
+      }
     }
   })

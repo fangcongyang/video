@@ -1,200 +1,200 @@
 [
     {
       "id": 0,
-      "key": "394tv",
-      "name": "394影视",
+      "site_key": "394tv",
+      "site_name": "394影视",
       "api": "https://www.394tv.com/api.php/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 640,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 2,
-      "key": "vipmv",
-      "name": "天堂资源",
+      "site_key": "vipmv",
+      "site_name": "天堂资源",
       "api": "http://vipmv.cc/api.php/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 620,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 4,
-      "key": "6Uzy",
-      "name": "6U资源",
+      "site_key": "6Uzy",
+      "site_name": "6U资源",
       "api": "http://zy.ataoju.com/inc/api.php",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 600,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 7,
-      "key": "lehootv",
-      "name": "乐活影视",
+      "site_key": "lehootv",
+      "site_name": "乐活影视",
       "api": "https://lehootv.com/api.php/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 580,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 8,
-      "key": "kuaibozy",
-      "name": "快播资源",
+      "site_key": "kuaibozy",
+      "site_name": "快播资源",
       "api": "http://www.kuaibozy.com/api.php/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 560,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 9,
-      "key": "apibdzy",
-      "name": "百度云资源",
+      "site_key": "apibdzy",
+      "site_name": "百度云资源",
       "api": "https://api.apibdzy.com/api.php/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 540,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 13,
-      "key": "taopianapi",
-      "name": "淘片资源采集网",
+      "site_key": "taopianapi",
+      "site_name": "淘片资源采集网",
       "api": "https://taopianapi.com/home/cjapi/as/mc/vod/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 520,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 14,
-      "key": "xinlangapi",
-      "name": "新浪资源",
+      "site_key": "xinlangapi",
+      "site_name": "新浪资源",
       "api": "https://api.xinlangapi.com/xinlangapi.php/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 500,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 15,
-      "key": "lziapi",
-      "name": "量子资源",
+      "site_key": "lziapi",
+      "site_name": "量子资源",
       "api": "https://cj.lziapi.com/api.php/provide/vod/from/liangzi/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 480,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 16,
-      "key": "yulecj",
-      "name": "鱼乐资源网",
+      "site_key": "yulecj",
+      "site_name": "鱼乐资源网",
       "api": "https://api.yulecj.com/api.php/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 460,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 17,
-      "key": "sdzyapi",
-      "name": "闪电资源网",
+      "site_key": "sdzyapi",
+      "site_name": "闪电资源网",
       "api": "https://sdzyapi.com/api.php/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 440,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 18,
-      "key": "yparse",
-      "name": "步步高资源",
+      "site_key": "yparse",
+      "site_name": "步步高资源",
       "api": "https://api.yparse.com/api/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 420,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 19,
-      "key": "ckzy",
-      "name": "CK资源",
+      "site_key": "ckzy",
+      "site_name": "CK资源",
       "api": "https://ckzy.me/api.php/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 400,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 21,
-      "key": "guangsuapi",
-      "name": "光速资源",
+      "site_key": "guangsuapi",
+      "site_name": "光速资源",
       "api": "https://api.guangsuapi.com/api.php/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 380,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 22,
-      "key": "jyzyapi",
-      "name": "金鹰资源",
+      "site_key": "jyzyapi",
+      "site_name": "金鹰资源",
       "api": "https://jyzyapi.com/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 360,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 23,
-      "key": "tiankongapi",
-      "name": "天空资源",
+      "site_key": "tiankongapi",
+      "site_name": "天空资源",
       "api": "https://api.tiankongapi.com/api.php/provide/vod/at/xml/from/tkm3u8",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 340,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 24,
-      "key": "bajiecaiji",
-      "name": "八戒采集",
+      "site_key": "bajiecaiji",
+      "site_name": "八戒采集",
       "api": "http://cj.bajiecaiji.com/inc/bjm3u8.php",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 320,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     },
     {
       "id": 27,
-      "key": "zzrhgg",
-      "name": "飘花资源",
+      "site_key": "zzrhgg",
+      "site_name": "飘花资源",
       "api": "http://www.zzrhgg.com/api.php/provide/vod/at/xml",
-      "group": "影视",
-      "isActive": "1",
+      "site_group": "影视",
+      "is_active": "1",
       "status": "可用",
       "position": 300,
-      "inReverseOrder": "1"
+      "is_reverse_order": "1"
     }
   ]

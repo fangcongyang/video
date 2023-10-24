@@ -65,3 +65,36 @@ diesel::table! {
         keywords -> Text,
     }
 }
+
+diesel::table! {
+    history (id) {
+        id -> Nullable<Integer>,
+        history_name -> Text,
+        ids -> Text,
+        index -> Integer,
+        start_position -> Integer,
+        end_position -> Integer,
+        play_time -> Double,
+        site_key -> Text,
+        online_play -> Text,
+        detail -> Text,
+        video_flag -> Text,
+        duration -> Double,
+        has_update -> Text,
+        update_time -> Text,
+    }
+}
+
+diesel::table! {
+    site (id) {
+        id -> Nullable<Integer>,
+        site_key -> Text,
+        site_name -> Text,
+        api -> Text,
+        site_group -> Text,
+        is_active -> Text,
+        status -> Text,
+        position -> Nullable<Double>,
+        is_reverse_order -> Text,
+    }
+}

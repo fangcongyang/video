@@ -143,7 +143,7 @@ export default defineComponent({
       detailInfo.loading = true;
       const id = detail.value.ids.toString();
       const cacheKey = detail.value.siteKey + '@' + id
-      let historyStr = await invoke("get_history_by_uq", { siteKey: detail.value.siteKey, ids: id })
+      let historyStr = await invoke("get_history_by_uq", { siteKeyStr: detail.value.siteKey, idsStr: id })
       if (historyStr) {
         const history = JSON.parse(historyStr);
         detailInfo.videoFlag = history.videoFlag;
@@ -216,7 +216,7 @@ export default defineComponent({
       detailInfo.videoFlag = e.flag
       detailInfo.videoList = e.list
       
-      let historyStr = await invoke("get_history_by_uq", { siteKey: detail.value.siteKey, ids: detail.value.ids.toString() })
+      let historyStr = await invoke("get_history_by_uq", { siteKeyStr: detail.value.siteKey, idsStr: detail.value.ids.toString() })
       if (historyStr) {
         let history = JSON.parse(historyStr);
         history.videoFlag = e.flag;

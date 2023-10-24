@@ -31,9 +31,7 @@ pub mod cmd {
         if count == 0 {
             let shortcut_strs = utils::read_init_data_file("shortcut.json");
             let shortcuts: Vec<Shortcut> = serde_json::from_str(&shortcut_strs).unwrap();
-            for shortcut_info in shortcuts {
-                insert_into(shortcut).values(&shortcut_info).execute(&mut conn).unwrap();
-            }
+            insert_into(shortcut).values(&shortcuts).execute(&mut conn).unwrap();
         }
     }
 

@@ -218,8 +218,8 @@
           @click="historyItemEvent(historyList[0])"
         >
           <span
-            >上次播放到:【{{ historyList[0].siteKey }}】{{
-              historyList[0].name
+            >上次播放到:【{{ historyList[0].site_key }}】{{
+              historyList[0].history_name
             }}
             第{{ historyList[0].index + 1 }}集
           </span>
@@ -351,7 +351,7 @@
                 class="title"
                 :title="
                   '【' +
-                  getSiteNameByKey(m.siteKey) +
+                  getSiteNameByKey(m.site_key) +
                   '】' +
                   m.name +
                   ' 第' +
@@ -359,7 +359,7 @@
                   '集'
                 "
               >
-                【{{ getSiteNameByKey(m.siteKey) }}】{{ m.name }} 第{{
+                【{{ getSiteNameByKey(m.site_key) }}】{{ m.name }} 第{{
                   m.index + 1
                 }}集
               </span>
@@ -390,7 +390,7 @@
               v-for="(m, n) in moviesInfo.otherSiteMoviesSources"
               :key="n"
             >
-              <span class="title">{{ m.name }} - [{{ m.site.name }}]</span>
+              <span class="title">{{ m.name }} - [{{ m.site.site_name }}]</span>
             </li>
           </ul>
           <ul
@@ -704,10 +704,10 @@ export default defineComponent({
       moviesInfo.moviesList = moviesInfo.currentMoviesFullList[index].list;
       moviesInfo.moviesFullListIndex = index;
       if (currentHistory.value) {
-        currentHistory.value.videoFlag =
+        currentHistory.value.video_flag =
           moviesInfo.currentMoviesFullList[index].flag;
-        currentHistory.value.updateTime = date.getDateTimeStr();
-        await invoke("save_history", { history: currentHistory.value });
+        currentHistory.value.update_time = date.getDateTimeStr();
+        await invoke("save_history", { historyInfo: currentHistory.value });
         refreshHistoryList();
       }
     };
@@ -788,22 +788,21 @@ export default defineComponent({
       }
       if (!currentHistory.value) {
         const history = {
-          id: 0,
-          name: playInfo.value.name,
-          siteKey: playInfo.value.movie.siteKey,
+          history_name: playInfo.value.name,
+          site_key: playInfo.value.movie.siteKey,
           ids: playInfo.value.movie.ids.toString(),
           index: playInfo.value.movie.index,
-          playTime: time,
+          play_time: time,
           duration: duration,
-          startPosition: startPosition,
-          endPosition: endPosition,
+          start_position: startPosition,
+          end_position: endPosition,
           detail: JSON.stringify(movieDetailCache.value[playMovieUq.value]),
-          onlinePlay: isOnline ? playInfo.value.movie.onlineUrl : "",
-          videoFlag: videoFlag,
-          hasUpdate: "0",
-          updateTime: date.getDateTimeStr(),
+          online_play: isOnline ? playInfo.value.movie.onlineUrl : "",
+          video_flag: videoFlag,
+          has_update: "0",
+          update_time: date.getDateTimeStr(),
         };
-        await invoke("save_history", { history: history });
+        await invoke("save_history", { historyInfo: history });
         refreshCurrentHistory();
       }
       if (isOnline) {
@@ -820,9 +819,9 @@ export default defineComponent({
           });
         })
         currentHistory.value.index = playInfo.value.movie.index;
-        currentHistory.value.onlinePlay = playInfo.value.movie.onlineUrl;
-        currentHistory.value.updateTime = date.getDateTimeStr();
-        await invoke("save_history", { history: currentHistory.value });
+        currentHistory.value.online_play = playInfo.value.movie.onlineUrl;
+        currentHistory.value.update_time = date.getDateTimeStr();
+        await invoke("save_history", { historyInfo: currentHistory.value });
       } else {
         timerEvent();
       }
@@ -874,10 +873,10 @@ export default defineComponent({
         }
         if (currentHistory.value) {
           currentHistory.value.index = playInfo.value.movie.index;
-          currentHistory.value.playTime = player.currentTime();
+          currentHistory.value.play_time = player.currentTime();
           currentHistory.value.duration = player.duration();
-          currentHistory.value.updateTime = date.getDateTimeStr();
-          await invoke("save_history", { history: currentHistory.value });
+          currentHistory.value.update_time = date.getDateTimeStr();
+          await invoke("save_history", { historyInfo: currentHistory.value });
         }
       }, 10000);
     };
@@ -1008,7 +1007,7 @@ export default defineComponent({
             }
             const historyItem = historyList.value[0];
             playInfo.value.isLive = false;
-            playInfo.value.movie.siteKey = historyItem.siteKey;
+            playInfo.value.movie.siteKey = historyItem.site_key;
             playInfo.value.movie.ids = historyItem.ids;
             playInfo.value.name = historyItem.name;
             playInfo.value.movie.index = historyItem.index;
@@ -1068,9 +1067,9 @@ export default defineComponent({
       // 排除已关闭的源和当前源
       for (const siteItem of siteList.value.filter(
         (x) =>
-          x.isActive &&
-          x.group === currentSite.group &&
-          x.key !== playInfo.value.movie.siteKey
+          x.is_active &&
+          x.site_group === currentSite.site_group &&
+          x.site_key !== playInfo.value.movie.siteKey
       )) {
         moviesApi
           .search(siteItem, playInfo.value.movie.name)
@@ -1079,14 +1078,14 @@ export default defineComponent({
             if (type === "[object Array]") {
               searchRes.forEach(async (item) => {
                 const detailRes = item;
-                detailRes.key = siteItem.key;
+                detailRes.key = siteItem.site_key;
                 detailRes.site = siteItem;
                 moviesInfo.otherSiteMoviesSources.push(detailRes);
               });
             }
             if (type === "[object Object]") {
               const detailRes = searchRes;
-              detailRes.key = siteItem.key;
+              detailRes.key = siteItem.site_key;
               detailRes.site = siteItem;
               moviesInfo.otherSiteMoviesSources.push(detailRes);
             }
@@ -1159,7 +1158,7 @@ export default defineComponent({
         const star = {
           name: playInfo.value.name,
           ids: playInfo.value.movie.ids.toString(),
-          siteKey: playInfo.value.movie.siteKey,
+          site_key: playInfo.value.movie.siteKey,
           detail: JSON.stringify(movieDetailCache.value[playMovieUq.value]),
         };
         await invoke("save_star", { star: star });
@@ -1169,7 +1168,7 @@ export default defineComponent({
     };
 
     const historyItemEvent = (history) => {
-      playInfo.value.movie.siteKey = history.siteKey;
+      playInfo.value.movie.siteKey = history.site_key;
       playInfo.value.movie.ids = history.ids;
       playInfo.value.name = history.name;
       playInfo.value.movie.index = history.index;
@@ -1193,21 +1192,21 @@ export default defineComponent({
       const key = playMovieUq.value;
       if (startTime != 0) {
         videoDetailCache.value[key]["startPosition"] = startTime;
-        currentHistory.value["startPosition"] = startTime;
+        currentHistory.value["start_position"] = startTime;
         player.setHighlightByName(startTime, "片头");
       }
 
       if (endTime != 0) {
         videoDetailCache.value[key]["endPosition"] = endTime;
-        currentHistory.value["endPosition"] = endTime;
+        currentHistory.value["end_position"] = endTime;
         const time = videoDuration - endTime;
         player.setHighlightByName(time, "片尾");
       }
 
       if (startTime != 0 || endTime != 0) {
         player.durationchange();
-        currentHistory.value.updateTime = date.getDateTimeStr();
-        await invoke("save_history", { history: currentHistory.value });
+        currentHistory.value.update_time = date.getDateTimeStr();
+        await invoke("save_history", { historyInfo: currentHistory.value });
         refreshHistoryList();
       }
     };

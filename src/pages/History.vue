@@ -142,14 +142,14 @@
         >
           <el-table-column type="selection"> </el-table-column>
           <el-table-column
-            prop="name"
+            prop="history_name"
             :show-overflow-tooltip="true"
             label="片名"
           >
           </el-table-column>
           <el-table-column width="120" label="片源">
             <template #default="scope">
-              <span>{{ getSiteByKey(scope.row.siteKey) }}</span>
+              <span>{{ getSiteByKey(scope.row.site_key) }}</span>
             </template>
           </el-table-column>
           <el-table-column width="180" label="观看至">
@@ -169,13 +169,13 @@
           </el-table-column>
           <el-table-column width="180" label="时间进度">
             <template #default="scope">
-              <span v-if="scope.row.playTime && scope.row.duration">
-                {{ fmtMSS(scope.row.playTime.toFixed(0)) }}/{{
+              <span v-if="scope.row.play_time && scope.row.duration">
+                {{ fmtMSS(scope.row.play_time.toFixed(0)) }}/{{
                   fmtMSS(scope.row.duration.toFixed(0))
                 }}
                 ({{ progress(scope.row) }}%)
               </span>
-              <span v-if="scope.row.onlinePlay">在线解析</span>
+              <span v-if="scope.row.online_play">在线解析</span>
             </template>
           </el-table-column>
           <el-table-column
@@ -227,7 +227,7 @@
           <template #item="{ item }">
             <div class="card">
               <div class="img">
-                <div class="update" v-if="item.hasUpdate == '1'">
+                <div class="update" v-if="item.has_update == '1'">
                   <span>有更新</span>
                 </div>
                 <ImageLazy
@@ -246,15 +246,15 @@
                   </div>
                 </div>
               </div>
-              <div class="name" @click="detailEvent(item)">{{ item.name }}</div>
+              <div class="name" @click="detailEvent(item)">{{ item.history_name }}</div>
               <div class="info">
-                <span v-if="item.playTime && item.duration">
-                  {{ fmtMSS(item.playTime.toFixed(0)) }}/{{
+                <span v-if="item.play_time && item.duration">
+                  {{ fmtMSS(item.play_time.toFixed(0)) }}/{{
                     fmtMSS(item.duration.toFixed(0))
                   }}
                   ({{ progress(item) }}%)
                 </span>
-                <span v-if="item.onlinePlay">在线解析</span>
+                <span v-if="item.online_play">在线解析</span>
                 <span
                   v-if="
                     item.detail &&
@@ -477,12 +477,12 @@ export default defineComponent({
         clearHasUpdateFlag(e);
       }
       playInfo.value.playType = "onlineMovie";
-      playInfo.value.name = e.name;
-      playInfo.value.movie.siteKey = e.siteKey;
+      playInfo.value.name = e.history_name;
+      playInfo.value.movie.siteKey = e.site_key;
       playInfo.value.movie.ids = e.ids;
       playInfo.value.movie.index = e.index;
-      playInfo.value.movie.onlinePlay = e.onlinePlay;
-      playInfo.value.movie.videoFlag = e.videoFlag;
+      playInfo.value.movie.onlinePlay = e.online_play;
+      playInfo.value.movie.videoFlag = e.video_flag;
       playInfo.value.movie.playMode = "local";
       view.value = "Play";
     };
@@ -545,7 +545,7 @@ export default defineComponent({
           .detail(getSiteByKey(his.siteKey), his.ids)
           .then(async (newDetail) => {
             if (his.detail.last !== newDetail.last) {
-              his.hasUpdate = "1";
+              his.has_update = "1";
               his.detail = newDetail;
               const msg = `检查到"${his.name}"有更新。`;
               ElMessage.success(msg);
@@ -579,8 +579,8 @@ export default defineComponent({
     const clearHasUpdateFlag = async (history) => {
       let newHistory = JSON.parse(JSON.stringify(history));
       newHistory.detail = JSON.stringify(newHistory.detail);
-      newHistory.hasUpdate = "0";
-      await invoke("save_history", { history: newHistory });
+      newHistory.has_update = "0";
+      await invoke("save_history", { historyInfo: newHistory });
       updateHistoryList();
     };
 
@@ -589,17 +589,17 @@ export default defineComponent({
     };
 
     const deleteEvent = async (history) => {
-      await invoke("del_history", { id: history.id });
+      await invoke("del_history", { historyId: history.id });
       updateHistoryList();
     };
 
     const detailEvent = (history) => {
       detail.value = {
         show: true,
-        siteKey: history.siteKey,
+        siteKey: history.site_key,
         ids: history.ids,
       };
-      if (history.hasUpdate == "1") {
+      if (history.has_update == "1") {
         clearHasUpdateFlag(history);
       }
     };
@@ -617,7 +617,7 @@ export default defineComponent({
     };
 
     const progress = (e) => {
-      return e.duration > 0 ? ((e.playTime / e.duration) * 100).toFixed(0) : 0;
+      return e.duration > 0 ? ((e.play_time / e.duration) * 100).toFixed(0) : 0;
     };
 
     const selectionCellClick = (selection, row) => {

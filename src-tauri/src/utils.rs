@@ -42,12 +42,6 @@ pub fn create_file(path: &Path) -> Result<File> {
     File::create(path).map_err(Into::into)
 }
 
-pub fn repeat_vars(count: usize) -> String {
-    let mut s = "?,".repeat(count);
-    s.pop();
-    s
-}
-
 pub fn mkdir<P: AsRef<Path>>(path: P) {
     std::fs::create_dir_all(&path).expect(&format!("Cannot create directory {}", path.as_ref().to_str().unwrap()))
 }

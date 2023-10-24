@@ -102,10 +102,10 @@
                   :label="item.label"
                   :value="item.id"
                 >
-                  <span :style="item.status == '可用' ? {float: 'left'} : {float: 'left', color: 'red'}">{{ item.label }}</span>
-                  <div style="font-size: 12Px; height: 100%; display: flex; align-items: center; justify-content: flex-end;" 
+                  <span style="width: 90%;" :style="item.status == '可用' ? {float: 'left'} : {float: 'left', color: 'red'}">{{ item.label }}</span>
+                  <div style="font-size: 12Px; height: 100%; display: flex; align-content: center;" 
                     @click.stop="removeChannelEvent(item, scope.row)">
-                    <Close style="float: right; width: 14Px; height: 14Px;"/>
+                    <Close />
                   </div>
                 </el-option>
               </el-select>
@@ -556,19 +556,19 @@ export default defineComponent({
       iptvInfo.checkAllChannelsLoading = true;
       iptvInfo.stopFlag = false;
       iptvInfo.checkProgress = 0;
-      channelList.value
+      channelGroupList.value
         .filter((e) => e.channels.length)
         .forEach((e) => {
           e.status = " ";
           e.hasCheckedNum = 0;
         });
-      const uncheckedList = channelList.value.filter(
-        (e) => e.status === undefined || e.status === " "
+      const uncheckedList = channelGroupList.value.filter(
+        (e) => e.channel_status === undefined || e.channel_status === " "
       ); // 未检测过的优先
-      const other = channelList.value.filter((e) => !uncheckedList.includes(e));
-      await this.checkChannelsBySite(uncheckedList);
-      await this.checkChannelsBySite(other).then((res) => {
-        this.checkAllChannelsLoading = false;
+      const other = channelGroupList.value.filter((e) => !uncheckedList.includes(e));
+      await checkChannelsBySite(uncheckedList);
+      await checkChannelsBySite(other).then((res) => {
+        iptvInfo.checkAllChannelsLoading = false;
         refreshChannelGroupList();
         if (!iptvInfo.stopFlag)
           ElMessage.success("直播频道批量检测已完成！");
@@ -581,7 +581,7 @@ export default defineComponent({
         return false;
       }
 
-      await invoke("del_channel_group", { id: row.id });
+      await invoke("del_channel_group", { channelGroupId: row.id });
       refreshChannelGroupList();
     };
 
@@ -642,11 +642,9 @@ export default defineComponent({
       iptvInfo.checkProgress += 1;
       ele.hasCheckedNum++;
       if (ele.hasCheckedNum === ele.channels.length) {
-        if (ele.channel_status === " ") {
-          ele.channel_status = ele.channels.some((channel) => channel.status === "可用")
-            ? "可用"
-            : "失效";
-        }
+        ele.channel_status = ele.channels.some((channel) => channel.status === "可用")
+          ? "可用"
+          : "失效";
         let channelGroup = _.cloneDeep(ele);
         channelGroup.channels = JSON.stringify(channelGroup.channels);
         await invoke("save_channel_group", { channelGroupInfo: channelGroup });

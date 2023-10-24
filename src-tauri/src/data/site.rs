@@ -1,150 +1,108 @@
 use super::data_source_con::*;
 use serde::{Serialize, Deserialize};
-use crate::utils;
+use diesel::prelude::*;
 
-#[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone, Queryable, Selectable, QueryableByName, Insertable)]
+#[diesel(table_name = crate::schema::site)]
 pub struct Site {
-    id: i32,
-    key: String,
-    name: String,
+    id: Option<i32>,
+    site_key: String,
+    site_name: String,
     api: String,
-    group: String,
-    isActive: String,
+    site_group: String,
+    is_active: String,
     status: String,
-    position: f64,
-    inReverseOrder: String,
+    position: Option<f64>,
+    is_reverse_order: String,
 }
 
 pub fn check_init_site () {
-    let mut binding = CACHE.lock().unwrap();
-    let conn = binding.get(DBNAME.into()).unwrap();
-    let count: i32 = conn.query_row("SELECT COUNT(1) FROM site", (), |row| row.get(0)).unwrap_or(0);
-    
-    if count == 0 {
-        let sites_str = utils::read_init_data_file("sites.json");
-        let mut sites: Vec<Site> = serde_json::from_str(&sites_str).unwrap();
-        let sites_18_str = utils::read_init_data_file("18+sites.json");
-        let sites_18: Vec<Site> = serde_json::from_str(&sites_18_str).unwrap();
-        sites.extend(sites_18);
-        let mut position = 20.0;
-        let in_reverse_order = "1";
-        for site in sites {
-            conn.execute(
-            "INSERT INTO site (key, name, api, `group`, is_active, status, position, in_reverse_order) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                (&site.key, &site.name, &site.api, &site.group, &in_reverse_order, &site.status, position, &in_reverse_order,),
-            ).unwrap();
-            position += 20.0;
-        }
-    }
 }
 
 pub mod cmd {
     use super::*;
-    use rusqlite::{params, named_params};
+    use diesel::{insert_into, update, dsl::max, delete};
     use tauri::command;
+    use crate::{schema::site::dsl::*, utils};
+
+    pub fn check_init_site() {
+        let mut conn = get_once_db_conn();
+        let count = site.count().get_result::<i64>(&mut conn).unwrap();
+        
+        if count == 0 {
+            let sites_str = utils::read_init_data_file("sites.json");
+            let mut sites: Vec<Site> = serde_json::from_str(&sites_str).unwrap();
+            let sites_18_str = utils::read_init_data_file("18+sites.json");
+            let sites_18: Vec<Site> = serde_json::from_str(&sites_18_str).unwrap();
+            sites.extend(sites_18);
+            let mut position_num = 20.0;
+            for mut site_info in sites {
+                site_info.position = Some(position_num);
+                insert_into(site).values(&site_info).execute(&mut conn).unwrap();
+                position_num += 20.0;
+            }
+        }
+    }
 
     #[command]
     pub fn select_site() -> Vec<Site> {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        
-        let mut stmt = conn.prepare("SELECT * FROM site").unwrap();
-        let sites = stmt.query_map([], |row| {
-            Ok(Site {
-                id: row.get(0)?,
-                key: row.get(1)?,
-                name: row.get(2)?,
-                api: row.get(3)?,
-                group: row.get(4)?,
-                isActive: row.get(5)?,
-                status: row.get(6)?,
-                position: row.get(7)?,
-                inReverseOrder: row.get(8)?,
-            })
-        }).unwrap();
-        let sites: Vec<Site> = sites.map(|site| site.unwrap()).collect();
+        let mut conn = get_once_db_conn();
+        let sites = site.select(Site::as_select()).order(position.asc()).load::<Site>(&mut conn).unwrap();
         sites
     }
     
     #[command]
-    pub fn get_site_by_key(key: &str) -> String {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        
-        let site = conn.query_row("SELECT * FROM site where key = :key", 
-          named_params! { ":key": key, },
-            |row| {
-                Ok(Site {
-                    id: row.get(0)?,
-                    key: row.get(1)?,
-                    name: row.get(2)?,
-                    api: row.get(3)?,
-                    group: row.get(4)?,
-                    isActive: row.get(5)?,
-                    status: row.get(6)?,
-                    position: row.get(7)?,
-                    inReverseOrder: row.get(8)?,
-                })
-            });
-        match site { 
-            Ok(s) => { serde_json::to_string(&s).unwrap() } 
-            Err(_e) => { "".to_string() } 
+    pub fn get_site_by_key(key: &str) -> Option<Site> {
+        let mut conn = get_once_db_conn();
+        let site_info = site.filter(site_key.is(key))
+            .select(Site::as_select()).first::<Site>(&mut conn);
+        match site_info {
+            Ok(si) => Some(si),
+            Err(_) => None,
         }
     }
 
     #[command]
-    pub fn save_site(mut site: Site) {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        if site.key == "" {
-            site.key = utils::get_pinyin_first_letter(&site.name)
+    pub fn save_site(mut site_info: Site) {
+        let mut conn = get_once_db_conn();
+        if site_info.site_key == "" {
+            site_info.site_key = utils::get_pinyin_first_letter(&site_info.site_key)
         }
-        if site.position == 0.0 {
-            let max_position: i32 = conn.query_row("SELECT MAX(position) FROM site", (), |row| row.get(0)).unwrap_or(0);
-            site.position = (max_position + 20).into();
-        }
-        if site.id == 0  {
-            conn.execute(
-                "INSERT INTO site (key, name, api, `group`, is_active, status, position, in_reverse_order)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position, &site.inReverseOrder),
-            ).unwrap();
-        } else {
-            conn.execute(
-                "UPDATE site SET key = ?1, name = ?2, api = ?3, `group` = ?4, is_active = ?5, status = ?6, position = ?7, in_reverse_order = ?8  
-                WHERE id = ?9",
-                (&site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position, &site.inReverseOrder, &site.id, ),
-            ).unwrap();
+        match site_info.id {
+            Some(site_info_id) => {
+                let _result = update(site)
+                .set((site_key.eq(site_info.site_key), site_name.eq(site_info.site_name), api.eq(site_info.api), site_group.eq(site_info.site_group), 
+                    is_active.eq(site_info.is_active), status.eq(site_info.status),  position.eq(site_info.position), 
+                    is_reverse_order.eq(site_info.is_reverse_order)))
+                .filter(id.eq(site_info_id)).execute(&mut conn);
+            }
+            _ => {
+                let position_max = site.select(max(position)).first::<Option<f64>>(&mut conn).unwrap().unwrap_or(0.00);
+                site_info.position = Some(position_max + 10.0);
+                insert_into(site).values(&site_info).execute(&mut conn).unwrap();
+            }
         }
     }
     
     #[command]
     pub fn insert_sites(sites: Vec<Site>) {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        for site in sites {
-            conn.execute(
-                "INSERT INTO site (id, key, name, api, `group`, is_active, status, position, in_reverse_order) 
-                    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-                (&site.id, &site.key, &site.name, &site.api, &site.group, &site.isActive, &site.status, &site.position, &site.inReverseOrder),
-            ).unwrap();
+        for mut site_info in sites {
+            site_info.id = None;
+            save_site(site_info);
         }
     }
 
     #[command]
-    pub fn del_site(id: i32) {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        conn.execute("DELETE FROM site WHERE id = ?1", params![&id]).unwrap();
+    pub fn del_site(site_id: i32) {
+        let mut conn = get_once_db_conn();
+        delete(site.filter(id.eq(&site_id))).execute(&mut conn).unwrap();
     }
 
     #[command]
     pub fn reset_site() {
-        let mut binding = CACHE.lock().unwrap();
-        let conn = binding.get(DBNAME.into()).unwrap();
-        conn.execute("DELETE FROM site WHERE 1=1", []).unwrap();
-        super::check_init_site();
+        let mut conn = get_once_db_conn();
+        delete(site).execute(&mut conn).unwrap();
+        check_init_site();
     }
 
 }

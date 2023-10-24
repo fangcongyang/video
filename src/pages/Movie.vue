@@ -8,7 +8,7 @@
         <template #label>
           <el-input-number
             v-model="moviesPageInfo.pageCount"
-            :min="1"
+            :min="moviesPageInfo.totalPageCount ? 1 : 0"
             :max="moviesPageInfo.totalPageCount"
             size="small"
             style="width: 180Px;"
@@ -75,9 +75,9 @@
       >
         <el-option
           v-for="item in siteList"
-          :key="item.key"
-          :label="item.name"
-          :value="item.key"
+          :key="item.site_key"
+          :label="item.site_name"
+          :value="item.site_key"
         >
         </el-option>
       </el-select>
@@ -312,13 +312,13 @@
             v-if="moviesConf.searchGroup !== '站内'"
             sortable
             :sort-method="
-              (a, b) => sortByLocaleCompare(a.site.name, b.site.name)
+              (a, b) => sortByLocaleCompare(a.site.site_name, b.site.site_name)
             "
             :filters="getFilters('siteName')"
             :filter-method="
               (value, row, column) => {
                 currentColumn = column;
-                return value === row.site.name;
+                return value === row.site.site_name;
               }
             "
             prop="site"
@@ -326,7 +326,7 @@
             width="120"
           >
             <template #default="scope">
-              <span>{{ scope.row.site.name }}</span>
+              <span>{{ scope.row.site.site_name }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="type" label="类型" width="100">
@@ -421,7 +421,7 @@
             >
               <div class="img">
                 <div class="site">
-                  <span>{{ item.site.name }}</span>
+                  <span>{{ item.site.site_name }}</span>
                 </div>
                 <ImageLazy
                   style="width: 100%"
@@ -620,7 +620,7 @@ export default defineComponent({
         return [movieInfo.currentSite];
       if (moviesConf.value.searchGroup === "组内")
         return siteList.value.filter(
-          (site) => site.group === movieInfo.currentSite.group
+          (site) => site.site_group === movieInfo.currentSite.site_group
         );
       if (moviesConf.value.searchGroup === "全站") return siteList.value;
       return siteList.value.filter((site) => site.isActive);
@@ -638,7 +638,7 @@ export default defineComponent({
     };
 
     const initSite = async () => {
-      movieInfo.selectedSiteName = siteList.value[0].key;
+      movieInfo.selectedSiteName = siteList.value[0].site_key;
       siteClick(movieInfo.selectedSiteName);
     };
 
@@ -652,8 +652,8 @@ export default defineComponent({
       }
       movieInfo.showFind = false;
       classList.value = [];
-      if (FILM_DATA_CACHE[movieInfo.currentSite.key]) {
-        classList.value = FILM_DATA_CACHE[movieInfo.currentSite.key];
+      if (FILM_DATA_CACHE[movieInfo.currentSite.site_key]) {
+        classList.value = FILM_DATA_CACHE[movieInfo.currentSite.site_key];
         classClick(movieInfo.selectedClassName);
       } else {
         refreshClass();
@@ -681,7 +681,7 @@ export default defineComponent({
         .then(
           (res) => {
             classList.value = res;
-            FILM_DATA_CACHE[movieInfo.currentSite.key] = classList.value;
+            FILM_DATA_CACHE[movieInfo.currentSite.site_key] = classList.value;
             classClick(movieInfo.classType.name);
           },
           () => {
@@ -704,7 +704,7 @@ export default defineComponent({
       if (movieInfo.selectedClassName.endsWith("剧"))
         movieInfo.selectedAreas = [];
       const cacheKey =
-        movieInfo.currentSite.key + "@" + movieInfo.classType.id;
+        movieInfo.currentSite.site_key + "@" + movieInfo.classType.id;
       if (FILM_DATA_CACHE[cacheKey]) {
         moviesPageInfo.value = FILM_DATA_CACHE[cacheKey];
       } else {
@@ -785,9 +785,9 @@ export default defineComponent({
     const detailEvent = (e) => {
       let siteKey;
       if (movieInfo.showFind) {
-        siteKey = e.site.key;
+        siteKey = e.site.site_key;
       } else {
-        siteKey = movieInfo.currentSite.key;
+        siteKey = movieInfo.currentSite.site_key;
       }
       detail.value = {
         show: true,
@@ -800,9 +800,9 @@ export default defineComponent({
       playInfo.value.playType = "onlineMovie";
       playInfo.value.name = e.name;
       if (movieInfo.showFind) {
-        playInfo.value.movie.siteKey = e.site.key;
+        playInfo.value.movie.siteKey = e.site.site_key;
       } else {
-        playInfo.value.movie.siteKey = movieInfo.currentSite.key;
+        playInfo.value.movie.siteKey = movieInfo.currentSite.site_key;
       }
       playInfo.value.movie.ids = e.id;
       playInfo.value.movie.index = 0;
@@ -817,7 +817,7 @@ export default defineComponent({
       if (movieInfo.showFind) {
         siteKey = e.site.key;
       } else {
-        siteKey = movieInfo.currentSite.key;
+        siteKey = movieInfo.currentSite.site_key;
       }
       let star = {
         star_name: e.name,
@@ -839,7 +839,7 @@ export default defineComponent({
     };
     
     const infiniteHandler = _.debounce(() => {
-      const key = movieInfo.currentSite.key;
+      const key = movieInfo.currentSite.site_key;
       let typeTid = movieInfo.classType.id;
       let page = moviesPageInfo.value.pageCount;
       let totalPageCount = moviesPageInfo.value.totalPageCount;
@@ -882,7 +882,7 @@ export default defineComponent({
                 }
               }
               // 更新缓存数据
-              const cacheKey = movieInfo.currentSite.key + "@" + typeTid;
+              const cacheKey = movieInfo.currentSite.site_key + "@" + typeTid;
               FILM_DATA_CACHE[cacheKey] = moviesPageInfo.value;
               refreshFilteredList();
             }

@@ -119,7 +119,7 @@ export const useMovieStore = defineStore('movie', {
       },
 
       getSiteByKey(siteKey) {
-        const site = this.siteList.find(e => e.key === siteKey)
+        const site = this.siteList.find(e => e.site_key === siteKey)
         return site
       },
     },

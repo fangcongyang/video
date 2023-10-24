@@ -31,10 +31,10 @@ pub fn get_download_movie_path(movie_name: &str, sub_title_name: &str) -> PathBu
 pub mod cmd {
 
     use super::*;
-    use diesel::{insert_into, delete, result::Error};
+    use diesel::{insert_into, delete, result::Error, update};
     use tauri::command;
     use std::fs;
-    use crate::{schema::download_info::dsl::*, download::file_download::DOWNLOAD_QUEUE};
+    use crate::{schema::download_info::dsl::*, download::file_download::{DOWNLOAD_QUEUE, DownloadInfoContext}};
 
     #[command]
     pub fn select_download_info() -> Vec<DownloadInfo> {
@@ -90,5 +90,19 @@ pub mod cmd {
         let download_info_list = download_info.filter(status.is_not("downloadEnd"))
             .select(DownloadInfo::as_select()).load(&mut conn).unwrap();
         download_info_list
+    }
+    
+    pub fn update_download_count(download_info_id: i32, download_count_num: i32) {
+        let mut conn = get_once_db_conn();
+        let _result = update(download_info)
+        .set(download_count.eq(download_count_num))
+        .filter(id.eq(download_info_id)).execute(&mut conn);
+    }
+    
+    pub fn update_download_info_by_context(dic: DownloadInfoContext) {
+        let mut conn = get_once_db_conn();
+        let _result = update(download_info)
+        .set((status.eq(dic.status), download_count.eq(dic.download_count), count.eq(dic.count), download_status.eq(dic.download_status)))
+        .filter(id.eq(dic.id)).execute(&mut conn);
     }
 }

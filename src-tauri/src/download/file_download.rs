@@ -27,11 +27,8 @@ use tungstenite::{accept, handshake::HandshakeRole, Error, HandshakeError, Messa
 use crate::{download::{
     m3u8_encrypt_key::{KeyType, M3u8EncryptKey},
     util::download_request,
-}, data::download_info::{cmd::get_download_not_end, get_download_movie_path}};
-use crate::{
-    data::data_source_con::{CACHE, DBNAME},
-    utils,
-};
+}, data::download_info::{cmd::{get_download_not_end, update_download_info_by_context, update_download_count}, get_download_movie_path}};
+use crate::utils;
 use crate::data::download_info::DownloadInfo;
 
 lazy_static! {
@@ -480,29 +477,6 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
         }
     }
 }
-
-pub fn update_download_count(id: i32, download_count: i32) {
-    let mut binding = CACHE.lock().unwrap();
-    let conn = binding.get(DBNAME.into()).unwrap();
-
-    conn.execute(
-        "UPDATE download_info SET download_count = ?1 WHERE id = ?2",
-        (&download_count, &id),
-    )
-    .unwrap();
-}
-
-pub fn update_download_info_by_context(dic: DownloadInfoContext) {
-    let mut binding = CACHE.lock().unwrap();
-    let conn = binding.get(DBNAME.into()).unwrap();
-
-    conn.execute(
-        "UPDATE download_info SET status = ?1, download_count = ?2, count = ?3, download_status = ?4 WHERE id = ?5",
-        (&dic.status, &dic.download_count, &dic.count, &dic.download_status, &dic.id),
-    )
-    .unwrap();
-}
-
 
 pub mod cmd {
     use tauri::command;
