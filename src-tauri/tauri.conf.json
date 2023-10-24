@@ -8,7 +8,7 @@
   },
   "package": {
     "productName": "vop",
-    "version": "0.1.4"
+    "version": "0.1.5"
   },
   "tauri": {
     "allowlist": {
@@ -80,7 +80,7 @@
       "active": true,
       "dialog": false,
       "endpoints": ["https://github.com/fangcongyang/video/releases/download/updater/update.json"],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDNGMjM0MTE0QTY4RkRGNzkKUldSNTM0K21GRUVqUDlzR3EyRTFoTU8zL3krVEM3d1BONEFCMDJwMHoxbU01Z0JOZUdPYjlXUHcK=",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZFRkIyQjIzQUU5OTAyNTcKUldSWEFwbXVJeXY3L254ZHNnZ3dRemdiQWxaQjRac3dEZXJFZGNwdFlPMTRPNUVzN24rWGwxZVQK",
       "windows": {
         "installMode": "passive",
         "installerArgs": []
