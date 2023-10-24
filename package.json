@@ -1,7 +1,7 @@
 {
   "name": "vop",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "updater": "node updater/updater.mjs",
-    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0 -n ./changelog-option.js"
+    "changelog": "conventional-changelog -p angular -i CHANGELOG.md -s -r 0 -n ./changelog-option.cjs"
   },
   "dependencies": {
     "@element-plus/icons-vue": "^2.1.0",
@@ -46,6 +46,7 @@
     "@types/validator": "^13.7.17",
     "@vitejs/plugin-vue": "^4.0.0",
     "@vitejs/plugin-vue-jsx": "^3.0.2",
+    "compare-func": "^2.0.0",
     "fast-glob": "^3.3.0",
     "node-fetch": "^3.3.2",
     "sass": "^1.63.4",
