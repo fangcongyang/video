@@ -1,3 +1,12 @@
+## [0.1.7](https://github.com/fangcongyang/video/compare/v0.1.6...v0.1.7) (2023-11-07)
+
+
+### 🐛 Bug Fixes | Bug 修复
+
+* 处理windows环境代码编译问题 ([](https://github.com/fangcongyang/video/commit/03d542f))
+
+
+
 ## [0.1.6](https://github.com/fangcongyang/video/compare/v0.1.5...v0.1.6) (2023-11-07)
 
 
