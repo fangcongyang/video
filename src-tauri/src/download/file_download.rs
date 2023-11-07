@@ -14,6 +14,7 @@ use std::{
     sync::{atomic::AtomicI32, atomic::Ordering, Arc, Mutex},
     thread,
     time::Duration,
+    collections::HashMap,
 };
 use tokio::{
     fs::{remove_file, File},
@@ -27,7 +28,7 @@ use tungstenite::{accept, handshake::HandshakeRole, Error, HandshakeError, Messa
 use crate::{download::{
     m3u8_encrypt_key::{KeyType, M3u8EncryptKey},
     util::download_request,
-}, data::download_info::{cmd::{get_download_not_end, update_download_info_by_context, update_download_count}, get_download_movie_path}};
+}, data::download_info::{cmd::{get_download_not_end, update_download_info_by_context, update_download_count, update_download_info_fail}, get_download_movie_path}};
 use crate::utils;
 use crate::data::download_info::DownloadInfo;
 
@@ -42,8 +43,6 @@ pub fn init_download_queue() {
         queue.push(download_info1);
     }
 }
-
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DownloadSourceInfo {
@@ -94,6 +93,7 @@ pub struct DownloadInfoContext {
     pub download_status: String,
     pub index_path: PathBuf,
     pub json_path: PathBuf,
+    pub json_success_path: PathBuf,
     pub ts_path: PathBuf,
 }
 
@@ -108,6 +108,7 @@ impl DownloadInfoContext {
 
         let index_path = movie_path.join(sub_title_name.to_owned() + ".txt");
         let json_path = movie_path.join(sub_title_name.to_owned() + ".json");
+        let json_success_path = movie_path.join(sub_title_name.to_owned() + "_success.json");
         let ts_path = movie_path.join("ts");
         Self {
             id: download_info.id.unwrap(),
@@ -121,6 +122,7 @@ impl DownloadInfoContext {
             download_count: download_info.download_count,
             index_path,
             json_path,
+            json_success_path,
             ts_path,
         }
     }
@@ -160,6 +162,7 @@ fn must_not_block<Role: HandshakeRole>(err: HandshakeError<Role>) -> Error {
 #[tokio::main]
 async fn handle_client(stream: TcpStream) -> Result<()> {
     let mut socket = accept(stream).map_err(must_not_block)?;
+    let mut download_count_map: HashMap<String, i32> = HashMap::new();
     info!("Running test");
     loop {
         match socket.read()? {
@@ -168,6 +171,19 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                     serde_json::from_str::<DownloadRequest>(&msg.clone().into_text().unwrap())
                         .unwrap();
                 let mut download_info_context = DownloadInfoContext::new(&mut request.downloadInfo);
+                let uq_key = format!("{}_{}", download_info_context.id, &download_info_context.status);
+                if download_count_map.contains_key(&uq_key) {
+                    if let Some(x) = download_count_map.get_mut(&uq_key) {
+                        *x += 1;
+                    }
+                    if download_count_map.get(&uq_key).unwrap() > &4 {
+                        download_count_map.remove(&uq_key);
+                        update_download_info_fail(download_info_context.id)
+                    }
+                } else {
+                    let uq_key1 = uq_key.clone();
+                    download_count_map.insert(uq_key1, 0);
+                }
 
                 match &download_info_context.status[..] {
                     "parseSource" => {
@@ -269,7 +285,8 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
         
                                 download_info_context.status = "downloadSlice".to_string();
                                 download_info_context.download_status = "downloading".to_string();
-        
+                                
+                                download_count_map.remove(&uq_key);
                                 let download_info_context1 = download_info_context.clone();
                                 update_download_info_by_context(download_info_context);
                                 socket.send(tungstenite::Message::Text(
@@ -292,18 +309,22 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
 
                         let v = std::fs::read_to_string(download_info_context.json_path.clone())
                             .unwrap();
+                        let success_v = std::fs::read_to_string(download_info_context.json_success_path.clone())
+                            .unwrap();
                         let mut download_source_info =
                             serde_json::from_str::<DownloadSourceInfo>(&v).unwrap();
                         let download_info_list = download_source_info.download_info_list.clone();
                         for download_info in download_info_list {
-                            queue.push(DownloadInfoQueueDetail {
-                                id: download_info.id,
-                                url: download_info.url,
-                                file_name: download_info.file_name,
-                                m3u8_encrypt_key: Arc::new(
-                                    download_source_info.m3u8_encrypt_key.clone(),
-                                ),
-                            });
+                            if !success_v.contains(&download_info.file_name) {
+                                queue.push(DownloadInfoQueueDetail {
+                                    id: download_info.id,
+                                    url: download_info.url,
+                                    file_name: download_info.file_name,
+                                    m3u8_encrypt_key: Arc::new(
+                                        download_source_info.m3u8_encrypt_key.clone(),
+                                    ),
+                                });
+                            }
                         }
 
                         let (tx, mut rx): (
@@ -336,7 +357,12 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                                             let mut file =
                                                 File::create(&detail.file_name).await.unwrap();
                                             file.write_all(&data).await.unwrap();
-                                            tx1.send(None).await.unwrap();
+                                            tx1.send(Some(DownloadInfoDetail {
+                                                id: detail.id.to_owned(),
+                                                url: detail.url,
+                                                file_name: detail.file_name.to_owned(),
+                                                success: false,
+                                            })).await.unwrap();
                                         } else {
                                             fail = true;
                                         }
@@ -347,12 +373,7 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                                 }
 
                                 if fail {
-                                    tx1.send(Some(DownloadInfoDetail {
-                                        id: detail.id.to_owned(),
-                                        url: detail.url,
-                                        file_name: detail.file_name.to_owned(),
-                                        success: false,
-                                    }))
+                                    tx1.send(None)
                                     .await
                                     .unwrap();
                                 }
@@ -362,12 +383,15 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                         drop(tx);
 
                         download_source_info.download_info_list.clear();
+                        
+                        let download_info_context1 = download_info_context.clone();
+                        let mut json_success_path = OpenOptions::new().append(true).open(download_info_context1.json_success_path).expect("打开失败");
                         while let Some(res) = rx.recv().await {
                             match res {
-                                Some(p) => download_source_info.download_info_list.push(p),
-                                None => {
+                                Some(p) => {
                                     let download_count1 =
                                         download_count.fetch_add(1, Ordering::Relaxed);
+                                    json_success_path.write((p.file_name.to_owned() + "\r\n").as_bytes()).unwrap();
                                     update_download_count(
                                         download_info_context.id,
                                         download_count1,
@@ -378,7 +402,8 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                                     socket.send(tungstenite::Message::Text(
                                         serde_json::to_string(&download_info_context2).unwrap(),
                                     ))?
-                                }
+                                },
+                                None => {}
                             }
                         }
 
@@ -391,6 +416,7 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                         download_info_context.download_count =
                             download_count.load(Ordering::Relaxed);
 
+                        download_count_map.remove(&uq_key);
                         let download_info_context1 = download_info_context.clone();
                         update_download_info_by_context(download_info_context);
 
@@ -418,6 +444,7 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                             download_info_context.download_status = "downloading".to_string();
                         }
 
+                        download_count_map.remove(&uq_key);
                         let download_info_context1 = download_info_context.clone();
                         update_download_info_by_context(download_info_context);
 
@@ -454,6 +481,7 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
                             // index_path.pop();
                             // let ts_path = index_path.join("ts");
                             // remove_dir_all(ts_path).unwrap();
+                            download_count_map.remove(&uq_key);
                             download_info_context.status = "downloadEnd".to_string();
                             download_info_context.download_status = "downloadSuccess".to_string();
                         } else {

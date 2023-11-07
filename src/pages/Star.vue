@@ -8,6 +8,7 @@
         <context-menu-item
           v-for="item in starAreas"
           @click="areaClick(item)"
+          :key="{item}"
         >
           <template #label>
             <span class="dot" v-if="starInfo.selectedAreas.includes(item)"></span>
@@ -27,6 +28,7 @@
         <context-menu-item
           v-for="item in starTypes"
           @click="typeClick(item)"
+          :key="{item}"
         >
           <template #label>
             <span class="dot" v-if="starInfo.selectedTypes.includes(item)"></span>
@@ -51,6 +53,7 @@
               refreshFilteredList();
             }
           "
+          :key="{item}"
         >
           <template #label>
             <span class="dot" v-if="starInfo.sortKeyword == item"></span>

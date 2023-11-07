@@ -669,7 +669,7 @@ export default defineComponent({
         moviesInfo.endPosition = { min: "00", sec: "00" };
         if (currentHistory.value) {
           if (currentHistory.value.index == playInfo.value.movie.index) {
-            time = currentHistory.value.playTime;
+            time = currentHistory.value.play_time;
           }
 
           if (!playInfo.value.movie.index)

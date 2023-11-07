@@ -204,10 +204,31 @@ fn init_database() {
 
 pub mod cmd {
     use tauri::command;
+    use crate::conf::AppConf;
+    #[allow(unused_imports)]
+    use crate::internet::{reg_util, bashrc_util, mac_util, proxy_server};
 
     #[command]
     pub fn init_database() {
         super::init_database()
+    }
+
+    #[command]
+    pub fn set_system_proxy(enable: u32, proxy_ip: String) {
+        let mut app_conf = AppConf::read();
+        let proxy_ip1 = proxy_ip.clone();
+        app_conf.systemConf.proxyAddr = proxy_ip;
+        app_conf.systemConf.proxyEnable = enable == 1;
+        if enable == 1 {
+            proxy_server::init_proxy_server();
+        }
+        app_conf.write();
+        #[cfg(target_os = "windows")]
+        reg_util::set_windows_proxy(enable, proxy_ip1);
+        #[cfg(target_os = "linux")]
+        bashrc_util::set_proxy(enable, proxy_ip1, ignore_ip);
+        #[cfg(target_os = "macos")]
+        mac_util::set_windows_proxy(enable, proxy_ip1, ignore_ip);
     }
 }
 

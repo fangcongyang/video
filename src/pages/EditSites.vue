@@ -65,7 +65,7 @@
                 v-model="scope.row.is_active"
                 active-value="1"
                 inactive-value="0"
-                @click.native.stop="propChangeEvent(scope.row)"
+                @click.stop="propChangeEvent(scope.row)"
               >
               </el-switch>
             </template>
@@ -139,9 +139,11 @@
             <el-input v-model="site.site_key" placeholder="请输入源站标识，如果为空，系统则自动生成" />
           </el-form-item>
         </el-form>
-        <span slot="footer" class="dialog-footer">
-          <el-button @click="closeDialog">取消</el-button>
-          <el-button type="primary" @click="addOrEditSite">保存</el-button>
+        <span class="dialog-footer">
+          <slot key="footer" name="dialog-footer">
+            <el-button @click="closeDialog">取消</el-button>
+            <el-button type="primary" @click="addOrEditSite">保存</el-button>
+          </slot>
         </span>
       </el-dialog>
     </div>

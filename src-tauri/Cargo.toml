@@ -1,6 +1,6 @@
 [package]
 name = "vop"
-version = "0.1.5"
+version = "0.1.6"
 description = "VideoOnlinePlay"
 authors = ["fangcy"]
 license = "GPLv3"
@@ -36,6 +36,11 @@ tungstenite = "0.20.0"
 diesel = { version = "2.1.0", features = ["sqlite", "r2d2"] }
 crossbeam = "0.8"
 libsqlite3-sys = { version = ">=0.17.2, <0.26.0", features = ["bundled"] }
+rand = { version = "0.8.5", features = ["small_rng"] }
+internet-util = "0.1.0"
+
+[target.'cfg(windows)'.dependencies]
+winapi = { version = "0.3", features = ["winuser"] }
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem

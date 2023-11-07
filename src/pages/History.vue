@@ -8,6 +8,7 @@
         <context-menu-item
           v-for="item in historyAreas"
           @click="areaClick(item)"
+          :key="item"
         >
           <template #label>
             <span
@@ -30,6 +31,7 @@
         <context-menu-item
           v-for="item in historyTypes"
           @click="typeClick(item)"
+          :key="item"
         >
           <template #label>
             <span
@@ -57,6 +59,7 @@
               refreshFilteredList();
             }
           "
+          :key="item"
         >
           <template #label>
             <span class="dot" v-if="historyInfo.sortKeyword == item"></span>

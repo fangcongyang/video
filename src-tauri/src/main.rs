@@ -9,6 +9,7 @@ mod utils;
 mod conf;
 mod download;
 mod schema;
+mod internet;
 
 use conf::AppConf;
 use app::{setup, menu};
@@ -68,6 +69,7 @@ fn main() {
         shortcut::cmd::save_shortcut,
         shortcut::cmd::reset_shortcut,
         data_source_con::cmd::init_database,
+        data_source_con::cmd::set_system_proxy,
         file_download::cmd::get_download_info_by_queue,
         file_download::cmd::retry_download,
     ])

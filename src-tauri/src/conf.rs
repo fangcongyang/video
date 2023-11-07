@@ -38,6 +38,10 @@ pub_struct!(SystemConf {
   encryptedPassword: String,
   downloadSavePath: String,
   shortcutEnabled: bool,
+  proxyEnable: bool,
+  proxyUrl: String,
+  proxyPort: u16,
+  proxyAddr: String,
 });
 
 impl SystemConf {
@@ -63,6 +67,10 @@ impl SystemConf {
       encryptedPassword: "".into(),
       downloadSavePath: download_save_path,
       shortcutEnabled: true,
+      proxyEnable: false,
+      proxyUrl: "".into(),
+      proxyPort: 65000,
+      proxyAddr: "".into(),
     }
   }
 }

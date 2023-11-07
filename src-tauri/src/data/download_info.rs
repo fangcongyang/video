@@ -105,4 +105,11 @@ pub mod cmd {
         .set((status.eq(dic.status), download_count.eq(dic.download_count), count.eq(dic.count), download_status.eq(dic.download_status)))
         .filter(id.eq(dic.id)).execute(&mut conn);
     }
+
+    pub fn update_download_info_fail(download_info_id: i32,) {
+        let mut conn: diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<SqliteConnection>> = get_once_db_conn();
+        let _result = update(download_info)
+        .set(download_status.eq("downloadFail"))
+        .filter(id.eq(download_info_id)).execute(&mut conn);
+    }
 }

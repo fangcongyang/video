@@ -15,7 +15,7 @@ export default {
     return new Promise(async (resolve, reject) => {
       let allIptvUrl = [];
       let searchPromise = [];
-      for (let i = 1; i < 3; i++) {
+      for (let i = 1; i < 4; i++) {
         searchPromise.push(fetch.get(onlineSearchUrl, {s: search, page: i}));
       }
       await Promise.all(searchPromise).then((datas) => {
@@ -84,7 +84,7 @@ export default {
           })
           .on('end', () => { resolve(false) })
       } else if (movieType === 'm3u8') {
-        fetch.localGet(url, null, false, 2000).then(manifest => {
+        fetch.get(url, null, false, 2000).then(manifest => {
           const parser = new M3u8Parser()
           parser.push(manifest)
           parser.end()
