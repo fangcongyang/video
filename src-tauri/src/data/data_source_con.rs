@@ -226,7 +226,7 @@ pub mod cmd {
         #[cfg(target_os = "windows")]
         reg_util::set_windows_proxy(enable, proxy_ip1);
         #[cfg(target_os = "linux")]
-        bashrc_util::set_proxy(enable, proxy_ip1, ignore_ip);
+        bashrc_util::set_proxy(enable, proxy_ip1);
         #[cfg(target_os = "macos")]
         mac_util::set_windows_proxy(enable, proxy_ip1, ignore_ip);
     }
