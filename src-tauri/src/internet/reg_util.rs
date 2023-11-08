@@ -1,14 +1,16 @@
-#[cfg(target_os = "windows")]
-
 use std::ffi::OsStr;
+#[cfg(target_os = "windows")]
 use std::os::windows::ffi::OsStrExt;
 use std::iter::once;
 use std::ptr::null_mut;
-use winapi::shared::minwindef::HKEY;
-use winapi::shared::winerror::SEC_E_OK;
-use winapi::um::winnt::{KEY_ALL_ACCESS, REG_DWORD, REG_MULTI_SZ};
-use winapi::um::winreg::{
-    RegOpenKeyExW, RegSetValueExW, HKEY_CURRENT_USER, LSTATUS, RegCloseKey,
+#[cfg(target_os = "windows")]
+use winapi::shared::{minwindef::HKEY, winerror::SEC_E_OK};
+#[cfg(target_os = "windows")]
+use winapi::um::{
+    winnt::{KEY_ALL_ACCESS, REG_DWORD, REG_MULTI_SZ}, 
+    winreg::{
+        RegOpenKeyExW, RegSetValueExW, HKEY_CURRENT_USER, LSTATUS, RegCloseKey,
+    }
 };
 
 const INTERNET_SETTINGS: &str = "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings";
@@ -22,6 +24,7 @@ fn str_to_lpcwstr(str: &str) -> Vec<u16> {
 }
 
 // 打开注册表项
+#[cfg(target_os = "windows")]
 fn reg_open(main_hkey: HKEY, sub_key: &str) -> Result<HKEY, String> {
     unsafe {
         let mut hkey: HKEY = null_mut();
@@ -33,6 +36,7 @@ fn reg_open(main_hkey: HKEY, sub_key: &str) -> Result<HKEY, String> {
     }
 }
 
+#[cfg(target_os = "windows")]
 fn reg_save_sz(hkey: &HKEY, key_name: &str, value: &str) -> LSTATUS {
     unsafe {
         let value_data = str_to_lpcwstr(value);
@@ -96,6 +100,7 @@ fn reg_save_sz(hkey: &HKEY, key_name: &str, value: &str) -> LSTATUS {
 //     }
 // }
 
+#[cfg(target_os = "windows")]
 pub fn set_windows_proxy(enable: u32, proxy_ip: String) {
     let hkey_result = reg_open(HKEY_CURRENT_USER, INTERNET_SETTINGS);
     let hkey = hkey_result.unwrap();

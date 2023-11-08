@@ -222,13 +222,14 @@ pub mod cmd {
         if enable == 1 {
             proxy_server::init_proxy_server();
         }
-        app_conf.write();
-        #[cfg(target_os = "windows")]
-        reg_util::set_windows_proxy(enable, proxy_ip1);
-        #[cfg(target_os = "linux")]
-        bashrc_util::set_proxy(enable, proxy_ip1);
-        #[cfg(target_os = "macos")]
-        mac_util::set_windows_proxy(enable, proxy_ip1, ignore_ip);
+        app_conf.write(); 
+        if cfg!(target_os = "windows") {
+            reg_util::set_windows_proxy(enable, proxy_ip1);
+        } else if cfg!(target_os = "linux") {
+            bashrc_util::set_proxy(enable, proxy_ip1);
+        } else if cfg!(target_os = "macos") {
+            mac_util::set_windows_proxy(enable, proxy_ip1);
+        }
     }
 }
 
