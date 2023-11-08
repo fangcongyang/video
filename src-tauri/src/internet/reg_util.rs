@@ -19,6 +19,7 @@ const KEY_PROXY_SERVER: &str = "ProxyServer";
 // const KEY_PROXY_OVERRIDE: &str = "ProxyOverride";
 
 // 将 &str 类型转为 LPCWSTR 类型
+#[cfg(target_os = "windows")]
 fn str_to_lpcwstr(str: &str) -> Vec<u16> {
     OsStr::new(str).encode_wide().chain(once(0)).collect()
 }
