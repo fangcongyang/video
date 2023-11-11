@@ -74,9 +74,30 @@ for (const { id, name } of updater.assets) {
     break;
   }
 }
+
+async function getChangeLog(token) {
+  const res = await fetch('https://api.github.com/repos/fangcongyang/video/releases/latest', {
+      method: 'GET',
+      headers: {
+          Authorization: `Bearer ${token}`,
+      },
+  });
+
+  if (res.ok) {
+      let data = await res.json();
+      if (data['body']) {
+          let changelog_md = data['body'];
+
+          return changelog_md;
+      }
+  }
+}
+
+let changelog = await getChangeLog(TOKEN);
  
 await octokit.rest.repos.uploadReleaseAsset({
   ...options,
+  notes: changelog,
   release_id: updater.id,
   name: UPDATE_FILE_NAME,
   data: JSON.stringify(updateData)

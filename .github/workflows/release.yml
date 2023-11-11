@@ -6,24 +6,239 @@ on:
     tags-ignore: [ updater ]
  
 jobs:
-  release:
+  change-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.outputstep.outputs.VERSION }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install git
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y git
+      - id: outputstep
+        run: |
+          echo "VERSION=$(git describe --tags | sed 's/-[0-9]*-.*//g')" >> "$GITHUB_OUTPUT"
+      - name: Change Version for Windows
+        run: |
+          sed -i "s/\"version\":.*/\"version\": \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\",/g" package.json
+
+          sed -i "s/\"version\":.*/\"version\": \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"/g" src-tauri/tauri.conf.json
+
+          sed -i "s/version = \"0.0.0\"/version = \"$(git describe --tags | sed 's/-[0-9]*-.*//g')\"/g" src-tauri/Cargo.toml
+
+          echo $(git describe --tags | sed 's/-[0-9]*-.*//g')
+
+      - name: Upload Artifacts for Windows
+        uses: actions/upload-artifact@v3
+        with:
+          name: source
+          path: ./*
+          if-no-files-found: error
+  build-for-macos:
     strategy:
       fail-fast: false
       matrix:
-        config:
-          - os: ubuntu-latest
-            arch: x86_64
-            rust_target: x86_64-unknown-linux-gnu
-          - os: macos-latest
-            arch: x86_64
-            rust_target: x86_64-apple-darwin
-          - os: macos-latest
-            arch: aarch64
-            rust_target: aarch64-apple-darwin
+        platform: [macos-latest]
+        target: [aarch64-apple-darwin, x86_64-apple-darwin]
+
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: source
+      - name: Setup Nodejs
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: pnpm
+      - name: Install Rust Stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: install dependencies
+        run: |
+          rustup target add ${{ matrix.target }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      - name: Install Dependencies
+        run: pnpm install
+      - name: Code Format
+        run: pnpm prettier --write .
+      - name: Build and Package
+        run: |
+          export TAURI_PRIVATE_KEY="${{ secrets.TAURI_PRIVATE_KEY }}"
+          export TAURI_KEY_PASSWORD="${{ secrets.TAURI_KEY_PASSWORD }}"
+          pnpm tauri build --target ${{ matrix.target }}
+          sudo chmod +x src-tauri/resources/*
+          chmod +x src-tauri/resources/*
+      - name: Change File Name
+        if: matrix.target == 'aarch64-apple-darwin'
+        run: |
+          sudo mv src-tauri/target/aarch64-apple-darwin/release/bundle/macos/video.app.tar.gz src-tauri/target/aarch64-apple-darwin/release/bundle/macos/video_${{needs.change-version.outputs.version}}_aarch64.app.tar.gz
+          sudo mv src-tauri/target/aarch64-apple-darwin/release/bundle/macos/video.app.tar.gz.sig src-tauri/target/aarch64-apple-darwin/release/bundle/macos/video_${{needs.change-version.outputs.version}}_aarch64.app.tar.gz.sig
+      - name: Change File Name
+        if: matrix.target == 'x86_64-apple-darwin'
+        run: |
+          sudo mv src-tauri/target/x86_64-apple-darwin/release/bundle/macos/video.app.tar.gz src-tauri/target/x86_64-apple-darwin/release/bundle/macos/video_${{needs.change-version.outputs.version}}_x64.app.tar.gz
+          sudo mv src-tauri/target/x86_64-apple-darwin/release/bundle/macos/video.app.tar.gz.sig src-tauri/target/x86_64-apple-darwin/release/bundle/macos/video_${{needs.change-version.outputs.version}}_x64.app.tar.gz.sig
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos_${{ matrix.target }}_dmg
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos_${{ matrix.target }}_updater
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app*
+          if-no-files-found: error
+      - name: Upload Release
+        if: startsWith(github.ref, 'refs/tags')
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: CHANGELOG
+          token: ${{ secrets.TOKEN }}
+          files: src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
+      - name: Upload Release
+        if: startsWith(github.ref, 'refs/tags')
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: CHANGELOG
+          token: ${{ secrets.TOKEN }}
+          files: src-tauri/target/${{ matrix.target }}/release/bundle/macos/*.app*
+  build-for-windows:
+    needs: change-version
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [windows-latest]
+        target: [x86_64-pc-windows-msvc, i686-pc-windows-msvc, aarch64-pc-windows-msvc]
+        include:
           - os: windows-latest
-            arch: x86_64
             target: x86_64-pc-windows-msvc
-    runs-on: ${{ matrix.config.os }}
+            toolchain: stable-x86_64-pc-windows-msvc
+          - os: windows-latest
+            target: i686-pc-windows-msvc
+            toolchain: stable-i686-pc-windows-msvc
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            toolchain: stable-aarch64-pc-windows-msvc
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: source
+      - name: Setup Nodejs
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Install Rust Stable
+        uses: dtolnay/rust-toolchain@stable
+      - name: install dependencies
+        run: |
+          rustup target add ${{ matrix.target }}
+          rustup toolchain install --force-non-host ${{ matrix.toolchain }}
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+            version: 8
+      - name: Install Dependencies
+        run: pnpm install
+      - name: Code Format
+        run: pnpm prettier --write .
+      - name: Build and Package
+        run: |
+          $env:TAURI_PRIVATE_KEY="${{ secrets.TAURI_PRIVATE_KEY }}"
+          $env:TAURI_KEY_PASSWORD="${{ secrets.TAURI_KEY_PASSWORD }}"
+          pnpm tauri build -b nsis,updater --target ${{ matrix.target }}
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: windows_${{ matrix.target }}
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*setup*
+          if-no-files-found: error
+      - name: Upload Release
+        if: startsWith(github.ref, 'refs/tags')
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: CHANGELOG
+          token: ${{ secrets.TOKEN }}
+          files: src-tauri/target/${{ matrix.target }}/release/bundle/nsis/*setup*
+  build-for-linux:
+    needs: change-version
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [ubuntu-latest]
+        target:
+          [
+            x86_64-unknown-linux-gnu,
+            i686-unknown-linux-gnu,
+            aarch64-unknown-linux-gnu,
+            armv7-unknown-linux-gnueabihf,
+          ]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            toolchain: stable-x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: i686-unknown-linux-gnu
+            toolchain: stable-i686-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            toolchain: stable-aarch64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: armv7-unknown-linux-gnueabihf
+            toolchain: stable-armv7-unknown-linux-gnueabihf
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: source
+      - name: Build for Linux
+        uses: ./.github/actions/build-for-linux
+        env:
+          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
+          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
+        with:
+            target: ${{ matrix.target }}
+            toolchain: ${{ matrix.toolchain }}
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux_${{ matrix.target }}_deb
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
+          if-no-files-found: error
+      - name: Upload Artifacts
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        uses: actions/upload-artifact@v3
+        with:
+          name: linux_${{ matrix.target }}_appimage
+          path: src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage*
+          if-no-files-found: error
+      - name: Upload Release
+        if: startsWith(github.ref, 'refs/tags') && matrix.target == 'x86_64-unknown-linux-gnu'
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: CHANGELOG
+          token: ${{ secrets.TOKEN }}
+          files: src-tauri/target/${{ matrix.target }}/release/bundle/appimage/*.AppImage*
+      - name: Upload Release
+        if: startsWith(github.ref, 'refs/tags')
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: CHANGELOG
+          token: ${{ secrets.TOKEN }}
+          files: src-tauri/target/${{ matrix.target }}/release/bundle/deb/*.deb
+  update:
+    needs: [build-for-macos, build-for-windows, build-for-linux]
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -32,50 +247,7 @@ jobs:
         name: Install pnpm
         id: pnpm-install
         with:
-          version: 7
-          run_install: false
- 
-      - name: Install Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-          cache: pnpm
-      - run: pnpm install --no-frozen-lockfile
- 
-      - name: Install Rust stable
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
- 
-      - name: Install Dependencies (ubuntu only)
-        if: matrix.config.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev webkit2gtk-4.0 libappindicator3-dev librsvg2-dev patchelf
- 
-      - name: install frontend dependencies
-        run: pnpm install
- 
-      - name: Build Tauri
-        uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        with:
-          tagName: v__VERSION__
-          releaseName: v__VERSION__
-  update:
-    needs: release
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: pnpm/action-setup@v2
-        name: Install pnpm
-        id: pnpm-install
-        with:
-          version: 7
+          version: 8
           run_install: false
 
       - name: Install Node.js

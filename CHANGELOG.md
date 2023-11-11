@@ -1,17 +1,12 @@
-## [0.1.7](https://github.com/fangcongyang/video/compare/v0.1.6...v0.1.7) (2023-11-07)
+## [0.1.7](https://github.com/fangcongyang/video/compare/v0.1.5...v0.1.7) (2023-11-08)
 
 
 ### 🐛 Bug Fixes | Bug 修复
 
+* 处理不同系统打包问题 ([](https://github.com/fangcongyang/video/commit/7f92a4e))
+* 处理不同系统打包问题 ([](https://github.com/fangcongyang/video/commit/8069e2f))
 * 处理windows环境代码编译问题 ([](https://github.com/fangcongyang/video/commit/03d542f))
-
-
-
-## [0.1.6](https://github.com/fangcongyang/video/compare/v0.1.5...v0.1.6) (2023-11-07)
-
-
-### 🐛 Bug Fixes | Bug 修复
-
+* 修改bug ([](https://github.com/fangcongyang/video/commit/fd9e313))
 * bug修改 ([](https://github.com/fangcongyang/video/commit/9c64e81))
 
 
@@ -24,11 +19,7 @@
 
 
 
-## [0.1.2](https://github.com/fangcongyang/video/compare/v0.1.1...v0.1.2) (2023-10-24)
-
-
-
-## [0.1.1](https://github.com/fangcongyang/video/compare/v0.1.0...v0.1.1) (2023-10-24)
+## [0.1.2](https://github.com/fangcongyang/video/compare/v0.1.0...v0.1.2) (2023-10-24)
 
 
 ### ✨ Features | 新功能
@@ -39,11 +30,7 @@
 
 
 
-# [0.1.0](https://github.com/fangcongyang/video/compare/v0.0.9...v0.1.0) (2023-10-18)
-
-
-
-## [0.0.9](https://github.com/fangcongyang/video/compare/v0.0.8...v0.0.9) (2023-10-18)
+# [0.1.0](https://github.com/fangcongyang/video/compare/v0.0.8...v0.1.0) (2023-10-18)
 
 
 

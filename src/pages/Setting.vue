@@ -366,6 +366,7 @@ import { storeToRefs } from "pinia";
 import { open } from "@tauri-apps/api/shell";
 import { open as fileOpen } from '@tauri-apps/api/dialog';
 import { checkUpdate, installUpdate } from "@tauri-apps/api/updater";
+import { relaunch } from '@tauri-apps/api/process';
 import { listen } from "@tauri-apps/api/event";
 import { ElMessage } from "element-plus";
 import { _ } from "lodash";
@@ -591,8 +592,9 @@ export default defineComponent({
     const startUpdate = () => {
       updateInfo.cancelUpdate = false;
       installUpdate().then(
-        () => {
+        async () => {
           ElMessage.success("更新成功");
+          await relaunch();
         },
         (e) => {
           ElMessage.error(e.toString());
@@ -637,7 +639,7 @@ export default defineComponent({
       websiteParse.value = tempWebsiteParse.value;
     }
 
-    const percentage = computed(() => _.ceil(updateInfo.downloaded/updateInfo.total, 4) * 100)
+    const percentage = computed(() => _.ceil(updateInfo.downloaded/updateInfo.total * 100, 4))
 
     const updateBody = computed(() => marked.parse(updateInfo.body))
 
