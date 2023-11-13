@@ -56,8 +56,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: pnpm
-      - run: pnpm install --no-frozen-lockfile
       - name: Install Rust Stable
         uses: dtolnay/rust-toolchain@stable
       - name: install dependencies
@@ -138,8 +136,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: pnpm
-      - run: pnpm install --no-frozen-lockfile
       - name: Install Rust Stable
         uses: dtolnay/rust-toolchain@stable
       - name: install dependencies
