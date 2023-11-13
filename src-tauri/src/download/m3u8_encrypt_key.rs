@@ -1,10 +1,11 @@
-use std::io::{Cursor, Read};
 use m3u8_rs::{Key as m3u8Key, KeyMethod};
-use aesstream::AesReader;
 use serde::{Serialize, Deserialize};
 use url::Url;
+use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, KeyIvInit};
 
 use super::util::download_request;
+
+type Aes128CbcDec = cbc::Decryptor<aes::Aes128>;
 
 #[derive(Debug, Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub enum KeyType {
@@ -60,12 +61,22 @@ impl M3u8EncryptKey {
     }
 
     pub fn decode(&self, data: &[u8]) -> Option<Vec<u8>> {
-        let decryptor = crypto::aessafe::AesSafe128Decryptor::new(&self.content);
-        let mut reader = AesReader::new(Cursor::new(data), decryptor).unwrap();
-        let mut v = Vec::new();
-        match reader.read_to_end(&mut v) {
-            Ok(_p) => Some(v),
-            Err(_) => None
+        if self.content.len() == 0 {
+            return None;
+        }
+        let cipher_len = data.len();
+        let mut buf = [0u8; 48];
+        buf[..cipher_len].copy_from_slice(data);
+        let m3u8_key: String = String::from_utf8_lossy(&self.content).to_string();
+
+        match &self.iv {
+            Some(iv) => {
+                let pt = Aes128CbcDec::new(m3u8_key.as_bytes().into(), iv.as_bytes().into())
+                .decrypt_padded_b2b_mut::<Pkcs7>(data, &mut buf)
+                .unwrap();
+                Some(pt.to_vec())
+            },
+            None => None,
         }
     }
 }
