@@ -40,6 +40,7 @@ jobs:
           path: ./*
           if-no-files-found: error
   build-for-macos:
+    needs: change-version
     strategy:
       fail-fast: false
       matrix:
@@ -67,8 +68,6 @@ jobs:
           version: 8
       - name: Install Dependencies
         run: pnpm install
-      - name: Code Format
-        run: pnpm prettier --write .
       - name: Build and Package
         run: |
           export TAURI_PRIVATE_KEY="${{ secrets.TAURI_PRIVATE_KEY }}"
@@ -150,8 +149,6 @@ jobs:
             version: 8
       - name: Install Dependencies
         run: pnpm install
-      - name: Code Format
-        run: pnpm prettier --write .
       - name: Build and Package
         run: |
           $env:TAURI_PRIVATE_KEY="${{ secrets.TAURI_PRIVATE_KEY }}"
