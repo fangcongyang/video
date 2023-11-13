@@ -56,7 +56,6 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 18
-          cache: pnpm
       - name: Install Rust Stable
         uses: dtolnay/rust-toolchain@stable
       - name: install dependencies
@@ -65,7 +64,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: 7
       - name: Install Dependencies
         run: pnpm install
       - name: Build and Package
