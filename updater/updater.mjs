@@ -93,6 +93,8 @@ async function getChangeLog(token) {
   }
 }
 
+const TOKEN = process.env.GITHUB_TOKEN;
+
 let changelog = await getChangeLog(TOKEN);
  
 await octokit.rest.repos.uploadReleaseAsset({
