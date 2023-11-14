@@ -1,7 +1,8 @@
 use m3u8_rs::{Key as m3u8Key, KeyMethod};
+use nom::{IResult, bytes::complete::tag, AsBytes};
 use serde::{Serialize, Deserialize};
 use url::Url;
-use aes::cipher::{block_padding::Pkcs7, BlockDecryptMut, KeyIvInit};
+use aes::cipher::{block_padding::Pkcs7, KeyIvInit, BlockDecryptMut};
 
 use super::util::download_request;
 
@@ -65,13 +66,12 @@ impl M3u8EncryptKey {
             return None;
         }
         let cipher_len = data.len();
-        let mut buf = [0u8; 48];
-        buf[..cipher_len].copy_from_slice(data);
+        let mut buf = vec![0u8; cipher_len]; 
         let m3u8_key: String = String::from_utf8_lossy(&self.content).to_string();
 
         match &self.iv {
             Some(iv) => {
-                let pt = Aes128CbcDec::new(m3u8_key.as_bytes().into(), iv.as_bytes().into())
+                let pt = Aes128CbcDec::new(m3u8_key.as_bytes().into(), hex::decode(get_hex(iv)).unwrap().as_bytes().into())
                 .decrypt_padded_b2b_mut::<Pkcs7>(data, &mut buf)
                 .unwrap();
                 Some(pt.to_vec())
@@ -79,4 +79,13 @@ impl M3u8EncryptKey {
             None => None,
         }
     }
+}
+
+fn get_hex(s: &str) -> &str {
+    let (i, _) = parser_hex(s).unwrap_or((s, ""));
+    i
+}
+
+fn parser_hex(s: &str) -> IResult<&str, &str> {
+    tag("0x")(s)
 }

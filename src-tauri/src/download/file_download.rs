@@ -309,13 +309,27 @@ async fn handle_client(stream: TcpStream) -> Result<()> {
 
                         let v = std::fs::read_to_string(download_info_context.json_path.clone())
                             .unwrap();
-                        let success_v = std::fs::read_to_string(download_info_context.json_success_path.clone())
-                            .unwrap();
                         let mut download_source_info =
                             serde_json::from_str::<DownloadSourceInfo>(&v).unwrap();
                         let download_info_list = download_source_info.download_info_list.clone();
-                        for download_info in download_info_list {
-                            if !success_v.contains(&download_info.file_name) {
+                        if utils::exists(&PathBuf::from(download_info_context.json_success_path.clone())) {
+                            let success_v = &std::fs::read_to_string(download_info_context.json_success_path.clone())
+                            .unwrap();
+                            for download_info in download_info_list {
+                                if !success_v.contains(&download_info.file_name) {
+                                    queue.push(DownloadInfoQueueDetail {
+                                        id: download_info.id,
+                                        url: download_info.url,
+                                        file_name: download_info.file_name,
+                                        m3u8_encrypt_key: Arc::new(
+                                            download_source_info.m3u8_encrypt_key.clone(),
+                                        ),
+                                    });
+                                }
+                            }
+                        } else {
+                            let _ = utils::create_file(&PathBuf::from(download_info_context.json_success_path.clone()));
+                            for download_info in download_info_list {
                                 queue.push(DownloadInfoQueueDetail {
                                     id: download_info.id,
                                     url: download_info.url,

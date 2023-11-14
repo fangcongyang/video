@@ -115,7 +115,7 @@ export const useMovieStore = defineStore('movie', {
       },
       
       getSiteNameByKey(siteKey) {
-        return this.getSiteByKey(siteKey).name;
+        return this.getSiteByKey(siteKey).site_name;
       },
 
       getSiteByKey(siteKey) {

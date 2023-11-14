@@ -43,7 +43,6 @@ lazy_static! {
 }
 
 pub fn init() {
-    
     let video_db = new_connection_pool();
     CACHE.lock().unwrap().put(DBNAME.into(), video_db);
     let app_conf = AppConf::read();

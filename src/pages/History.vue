@@ -152,7 +152,7 @@
           </el-table-column>
           <el-table-column width="120" label="片源">
             <template #default="scope">
-              <span>{{ getSiteByKey(scope.row.site_key) }}</span>
+              <span>{{ getSiteNameByKey(scope.row.site_key) }}</span>
             </template>
           </el-table-column>
           <el-table-column width="180" label="观看至">
@@ -318,7 +318,7 @@ export default defineComponent({
     const { view, systemConf, playInfo } = storeToRefs(coreStore);
 
     const movieStore = useMovieStore();
-    const { getSiteByKey } = movieStore;
+    const { getSiteByKey, getSiteNameByKey } = movieStore;
     const { detail } = storeToRefs(movieStore);
 
     const historyStore = useHistoryStore();
@@ -588,7 +588,7 @@ export default defineComponent({
     };
 
     const downloadEvent = (history) => {
-      downloadMovie(getSiteByKey(history.siteKey), history.ids);
+      downloadMovie(getSiteByKey(history.site_key), history.ids);
     };
 
     const deleteEvent = async (history) => {
@@ -711,6 +711,7 @@ export default defineComponent({
       updateAllEvent,
       downloadEvent,
       getSiteByKey,
+      getSiteNameByKey,
       deleteEvent,
       detailEvent,
       selectionCellClick,

@@ -29,14 +29,12 @@ export const useDownloadStore = defineStore("download", {
     },
 
     async downloadMovie(site, ids) {
-      const historyStr = await invoke("get_history_by_uq", {
-        siteKey: site.key,
-        ids: ids,
+      const history = await invoke("get_history_by_uq", {
+        siteKeyStr: site.site_key,
+        idsStr: ids,
       });
       let videoFlag;
-      let history;
-      if (historyStr) {
-        history = JSON.parse(historyStr);
+      if (history) {
         videoFlag = history.videoFlag;
       }
       moviesApi
@@ -44,7 +42,7 @@ export const useDownloadStore = defineStore("download", {
         .then(async (res) => {
           let downloadInfos = [];
           res.downloadUrls.forEach((url) => {
-            let movieName = history ? history.name : url.name;
+            let movieName = history ? history.history_name : url.name;
             downloadInfos.push({
               id: null,
               movie_name: util.trimAll(movieName),

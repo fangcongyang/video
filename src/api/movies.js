@@ -233,7 +233,7 @@ export default  {
             }
             fetch.get(site.api, params).then(data => {
                 let dataParser;
-                switch (site.name) {
+                switch (site.site_name) {
                     case "jyzyapi":
                         dataParser = new SiteClassJsonParser();
                         break;
@@ -357,7 +357,6 @@ export default  {
                 })
             } else {
                 this.detail(site, id).then(res => {
-                    console.log(res)
                     const dl = res.fullList.find((e, index) => e.flag + '-' + index === videoFlag) || res.fullList[0]
                     for (const i of dl.list) {
                         const url = encodeURI(i.includes('$') ? i.split('$')[1] : i)
